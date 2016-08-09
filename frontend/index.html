@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style type="text/css">
+        audio {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+    const audio = new Audio();
+    audio.controls = true;
+
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '1.mp3', true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = function (e) {
+        if (this.status == 200) {
+            const blob = new Blob([this.response], {type: 'audio/mpeg'});
+            var blobURL = window.URL.createObjectURL(blob);
+            document.body.appendChild(audio);
+            audio.src = blobURL;
+            console.log(blobURL);
+
+        }
+    };
+    xhr.send();
+</script>
+
+</body>
+</html>
