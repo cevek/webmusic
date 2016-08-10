@@ -1,22 +1,19 @@
 'use strict';
-import {IMySql, IPool, IConnection} from "mysql";
-import {Expression} from "./dao";
-var mysql: IMySql = require('mysql2');
+import {IPool} from "mysql";
+import {Transaction} from "./Transaction";
+import {QueryValues} from "./query";
 
-type Params = {[key: string]: string | number} | (string | number)[];
-
-export const DBEscape = mysql.escape;
 
 export class DB {
     constructor(protected pool: IPool) {}
 
-    async query<T>(query:string, params?:Params, trx?:Transaction):Promise<T> {
-        console.log(query, params);
+    async query<T>(query:string, values?:QueryValues, trx?:Transaction):Promise<T> {
+        console.log(query, values);
 
         var connection = trx ? trx.connection : await this.getConnection();
         var res = await (new Promise<T>((resolve, reject)=> {
             if (query) {
-                var q = connection.query(query, params, (err:Error, rows:T) => {
+                var q = connection.query(query, values, (err:Error, rows:T) => {
                     if (err) {
                         //Got a packet bigger than 'max_allowed_packet' bytes
                         if ((<any>err).errno == 1153) {
@@ -37,56 +34,12 @@ export class DB {
         return res;
     }
 
-    insertSql(table:string, values:any[]) {
-        var keysSet = new Set();
-        for (var i = 0; i < values.length; i++) {
-            for (var field in values[i]) {
-                keysSet.add(field);
-            }
-        }
-        var keys = [...keysSet.values()];
-        var arrValues:string[][] = [];
-        for (var value of values) {
-            var arrValue:string[] = [];
-            for (var key of keys) {
-                arrValue.push(mysql.escape(value[key]));
-            }
-            arrValues.push(arrValue);
-        }
-        return arrValues.length === 0 ? '' : `INSERT INTO \`${table}\` (${keys.map(
-            k => `\`${k}\``).join(", ")}) VALUES (${arrValues.map(
-            v => `${v.join(", ")}`).join("), (")});`;
+    async queryOne<T>(query:string, values?:any, trx?:Transaction) {
+        return (await this.query<T[]>(query, values, trx))[0];
     }
 
-    updateSql(table: string, values: any, where: string) {
-        let setValues = '';
-        for (const key in values) {
-            setValues += `${key} = ${mysql.escape(values[key])}`;
-        }
-        return `UPDATE \`${table}\` SET ${setValues} WHERE ${where}`;
-    }
-
-    whereSql(params:any) {
-        if (params instanceof Expression) {
-            return params.toSQL();
-        }
-        if (params && typeof params == 'object') {
-            var conditions = Object.keys(params)
-                .map(k => `${k} ${params[k] === null ? 'IS' : '='} ${mysql.escape(params[k])}`);
-            return conditions.length > 0 ? ('WHERE ' + conditions.join(' AND ')) : ''
-        }
-        if (typeof params == 'string') {
-            return params;
-        }
-        return '';
-    }
-
-    async queryOne<T>(query:string, params?:any, trx?:Transaction) {
-        return (await this.query<T[]>(query, params, trx))[0];
-    }
-
-    async queryAll<T>(query:string, params?:any, trx?:Transaction) {
-        return (await this.query<T[]>(query, params, trx)) || [];
+    async queryAll<T>(query:string, values?:any, trx?:Transaction) {
+        return (await this.query<T[]>(query, values, trx)) || [];
     }
 
     async transaction(fn:(transaction:Transaction)=>Promise<any>) {
@@ -119,26 +72,6 @@ export class DB {
     }
 }
 
-export class Transaction {
-    public connection:IConnection;
 
-    constructor(public db:DB) {}
-
-    async begin() {
-        this.connection = await this.db.getConnection();
-        await this.db.query<void>('START TRANSACTION', null, this);
-        return this;
-    }
-
-    async commit() {
-        await this.db.query<void>('COMMIT', null, this);
-        return this;
-    }
-
-    async rollback() {
-        await this.db.query<void>('ROLLBACK', null, this);
-        return this;
-    }
-}
 
 
