@@ -1,12 +1,17 @@
-import {DAO, HasMany} from "../lib/dao";
+import {DAO, HasMany, HasManyThrough, HasOne} from "../lib/dao";
 import {GenreStation} from "./GenreStation";
 import {DB} from "../lib/db";
+import {Genre} from "./Genre";
+import {StationInfo} from "./StationInfo";
 export class Station {
     id:number;
     name:string;
 
-    @HasMany(GenreStation)
-    genres:GenreStation[];
+    @HasManyThrough(Genre, GenreStation)
+    genres:Genre[];
+
+    @HasOne(StationInfo)
+    info: StationInfo;
 
     urls:string[];
     needToConvert:boolean;

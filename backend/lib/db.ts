@@ -11,6 +11,8 @@ export class DB {
     constructor(protected pool: IPool) {}
 
     async query<T>(query:string, params?:Params, trx?:Transaction):Promise<T> {
+        console.log(query, params);
+
         var connection = trx ? trx.connection : await this.getConnection();
         var res = await (new Promise<T>((resolve, reject)=> {
             if (query) {

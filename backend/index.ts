@@ -1,3 +1,4 @@
+import {StationInfo} from "./models/StationInfo";
 require('source-map-support').install();
 
 import {Recorder} from "./services/Recorder";
@@ -5,6 +6,7 @@ import {Station} from "./models/Station";
 import {Genre} from "./models/Genre";
 import {genre, genreStations, station} from "./models/index";
 import {GenreStation} from "./models/GenreStation";
+import {Attribute} from "./lib/dao";
 function runTasks() {
     const recorder = new Recorder();
     /*  const chillout = new Genre({
@@ -23,9 +25,16 @@ function runTasks() {
      console.log(data);
      })*/
 }
+/*
 station.findAll({include: [{model: GenreStation, params: {include: [{model: Genre}]}}]}).then(data => {
     console.log(JSON.stringify(data, null, 3));
 }).catch(err => console.error(err instanceof Error ? err.stack : err));
+*/
+
+station.findAll({include: [{model: Genre, attributes: [new Attribute('id'), new Attribute('name')]}, {model: StationInfo}]}).then(data => {
+    console.log(JSON.stringify(data, null, 3));
+}).catch(err => console.error(err instanceof Error ? err.stack : err));
+
 /*
 
 genreStations.findAll({include: [{model: Genre}]}).then(data => {
