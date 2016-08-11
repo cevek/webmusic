@@ -1,10 +1,16 @@
+import {Student} from "./student";
+import {StationInfo, StationInfoDAO} from "./models/StationInfo";
+import {Recorder} from "./services/Recorder";
+import {GenreDAO} from "./models/Genre";
+import {inject} from "./book";
+import {StationDAO} from "./models/Station";
+import {DBConfig} from "./lib/DBConfig";
+import {bindInjection} from "./lib/injector";
+import {config} from "./config";
 require('source-map-support').install();
 
-import {StationInfo} from "./models/StationInfo";
-import {Recorder} from "./services/Recorder";
-import {Genre} from "./models/Genre";
-import {station} from "./models/index";
-import {Attribute} from "./lib/query";
+// const my = inject(MyService);
+// my.todo();
 
 function runTasks() {
     const recorder = new Recorder();
@@ -30,12 +36,16 @@ function runTasks() {
  }).catch(err => console.error(err instanceof Error ? err.stack : err));
  */
 
+bindInjection(DBConfig, config.db);
 
+new Student();
+
+const station = inject(StationDAO);
 station.findAll({
     include: [{
-        model: Genre,
-        attributes: [new Attribute('id'), new Attribute('name')]
-    }, {model: StationInfo}]
+        model: GenreDAO,
+        attributes: [station.name, station.id]
+    }, {model: StationInfoDAO}]
 }).then(data => {
     console.log(JSON.stringify(data, null, 3));
 }).catch(err => console.error(err instanceof Error ? err.stack : err));

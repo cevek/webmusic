@@ -9,6 +9,7 @@
     "noFallthroughCasesInSwitch": true,
     "suppressImplicitAnyIndexErrors": true,
     "suppressExcessPropertyErrors": true,
+    "emitDecoratorMetadata": true,
     "skipDefaultLibCheck": true,
     "sourceMap": true
   },

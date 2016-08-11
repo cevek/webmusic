@@ -1,11 +1,11 @@
 'use strict';
-import {IPool} from "mysql";
 import {Transaction} from "./Transaction";
 import {QueryValues} from "./query";
-
+import {inject} from "./injector";
+import {Connection} from "./Connection";
 
 export class DB {
-    constructor(protected pool: IPool) {}
+    protected connection = inject(Connection);
 
     async query<T>(query:string, values?:QueryValues, trx?:Transaction):Promise<T> {
         console.log(query, values);
@@ -61,7 +61,7 @@ export class DB {
 
     async getConnection():Promise<any> {
         return await (new Promise((resolve, reject)=> {
-            this.pool.getConnection((err:Error, connection:any) => {
+            this.connection.pool.getConnection((err:Error, connection:any) => {
                 if (err) {
                     return reject(err);
                 }

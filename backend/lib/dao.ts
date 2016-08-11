@@ -2,12 +2,14 @@
 import {DB} from "./db";
 import {Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues} from "./query";
 import {Transaction} from "./Transaction";
+import {inject} from "./injector";
+
 interface Include {
-    model:InstanceClass<BaseType>;
+    model:typeof DAO;
     params?:Params;
 }
 
-interface Params extends SelectParams{
+interface Params extends SelectParams {
     include?:Include[];
     trx?:Transaction;
 }
@@ -22,27 +24,21 @@ const enum RelationType {
 
 interface Relation {
     type:RelationType;
-    model:InstanceClass<BaseType>;
-    destinationModel:InstanceClass<BaseType>;
+    model:typeof DAO;
+    destinationModel:typeof DAO;
     property:string;
     searchByAttr:Attribute;
     relSearchByAttr:Attribute;
 }
-interface InstanceClass<T extends BaseType> {
-    new ():T;
-    _dao?:DAO<T>;
-    _relations?:{[id:string]:Relation};
-}
 
-export abstract class DAO<T extends BaseType> {
+export class DAO<T extends BaseType> {
     protected table:string;
-    protected Class:InstanceClass<T>;
+    protected db = inject(DB);
 
-    constructor(protected db:DB, table:string, Class:InstanceClass<T>) {
-        this.table = table;
-        this.Class = Class;
-        this.Class._dao = this;
-    }
+    id = new Attribute('', 'id');
+
+    protected relations = new Map<typeof DAO, Relation>();
+    protected fields = new Map<string, Attribute>();
 
     async create(item:T, trx?:Transaction) {
         return await this.createBulk([item], trx);
@@ -53,12 +49,12 @@ export abstract class DAO<T extends BaseType> {
         return await this.db.query(insertSql(this.table, items, values), [values], trx);
     }
 
-    async findById(id:number, params: Params = {}) {
+    async findById(id:number, params:Params = {}) {
         params.table = this.table;
         if (!params.where) {
             params.where = wexpr();
         }
-        params.where.and(new Attribute('id').equal(id));
+        params.where.and(this.id.equal(id));
         return this.findOne(params);
     }
 
@@ -80,15 +76,16 @@ export abstract class DAO<T extends BaseType> {
     private async includeRelations(includes:Include[], result:T[]) {
         for (let i = 0; i < includes.length; i++) {
             const include = includes[i];
-            await this.getRelations(include.model.name, include, result);
+            await this.processRelation(include.model, include.params, result);
         }
     }
 
-    protected async getRelations(key: string, params:Params = {}, result:BaseType[], returnSubResult = false) {
-        const relation = this.Class._relations[key];
+    protected async processRelation(modelx:typeof DAO, params:Params = {}, result:BaseType[], returnSubResult = false) {
+        const relation = this.relations.get(modelx);
         const model = relation.model;
+        const modelDAO = inject(model);
         const hasDestination = !!relation.destinationModel;
-        const destRelation = hasDestination ? model._relations[relation.destinationModel.name] : null;
+        const destRelation = hasDestination ? modelDAO.relations.get(relation.destinationModel) : null;
         const isHasMany = relation.type == RelationType.HAS_MANY || relation.type == RelationType.HAS_MANY_THROUGH;
         const ids = Array(result.length);
         const attrName = relation.searchByAttr.value;
@@ -107,17 +104,17 @@ export abstract class DAO<T extends BaseType> {
             localParams.where = localParams.where.and(cond);
         }
 
-        const subResult = await model._dao.findAll(localParams);
+        const subResult = await inject(model).findAll(localParams);
 
         let destResult:BaseType[];
         let destKey:string;
         if (hasDestination) {
             if (destRelation.type == RelationType.BELONGS_TO) {
                 destKey = destRelation.relSearchByAttr.name;
-                destResult = await model._dao.getRelations(relation.destinationModel.name, params, subResult, true);
+                destResult = await modelDAO.processRelation(relation.destinationModel, params, subResult, true);
             }
             else {
-                throw new Error(`Has not ${destRelation.model.name} belongsTo relation on ${model.name}`);
+                throw new Error(`Has not ${destRelation.model.constructor.name} belongsTo relation on ${model.constructor.name}`);
             }
         }
 
@@ -151,44 +148,55 @@ export abstract class DAO<T extends BaseType> {
         }
         return null;
     }
-}
 
+    protected addField(fieldName:string) {
+        const field = new Attribute(this.table, fieldName);
+        this.fields.set(fieldName, field);
+        return field;
+    }
 
-function relation(cls:InstanceClass<BaseType>, through:InstanceClass<BaseType>, type:RelationType, isHas:boolean):any {
-    return (target:BaseType, property:string, descriptor:TypedPropertyDescriptor<Object>) => {
-        const constructor = target.constructor as InstanceClass<BaseType>;
-        if (!constructor._relations) {
-            constructor._relations = {};
-        }
+    protected addHasOneRelation(fieldName:string, cls:typeof DAO) {
+        return this.addRelation(fieldName, cls, null, RelationType.HAS_ONE);
+    }
+
+    protected addHasOneThroughRelation(fieldName:string, cls:typeof DAO, through:typeof DAO) {
+        return this.addRelation(fieldName, cls, through, RelationType.HAS_ONE_THROUGH);
+    }
+
+    protected addHasManyRelation(fieldName:string, cls:typeof DAO) {
+        return this.addRelation(fieldName, cls, null, RelationType.HAS_MANY);
+    }
+
+    protected addHasManyThroughRelation(fieldName:string, cls:typeof DAO, through:typeof DAO) {
+        return this.addRelation(fieldName, cls, through, RelationType.HAS_MANY_THROUGH);
+    }
+
+    protected addBelongsToRelation(fieldName:string, cls:typeof DAO) {
+        return this.addRelation(fieldName, cls, null, RelationType.BELONGS_TO);
+    }
+
+    private normalizeField(name:string) {
+        return name.toLowerCase().replace(/dao$/, '');
+    }
+
+    private addRelation(property:string, cls:typeof DAO, through:typeof DAO, type:RelationType):any {
+        //todo: table names
         const relClass = through ? through : cls;
-        const searchByAttr = new Attribute(target.constructor.name.toLowerCase() + 'Id');
-        const relSearchByAttr = new Attribute(relClass.name.toLowerCase() + 'Id');
-        constructor._relations[cls.name] = {
+        const searchByAttr = new Attribute('', this.normalizeField(this.constructor.name) + 'Id');
+        const relSearchByAttr = new Attribute('', this.normalizeField(relClass.name) + 'Id');
+        const isBelongs = type == RelationType.BELONGS_TO;
+
+        const relation = {
             type,
             model: relClass,
             destinationModel: through ? cls : null,
             property,
-            searchByAttr: isHas ? searchByAttr : new Attribute('id'),
-            relSearchByAttr: isHas ? new Attribute('id') : relSearchByAttr
+            searchByAttr: isBelongs ? new Attribute('', 'id') : searchByAttr,
+            relSearchByAttr: isBelongs ? relSearchByAttr : new Attribute('', 'id')
         };
-        return descriptor;
-    };
+        this.relations.set(cls, relation);
+        return relation;
+    }
 }
 
-export function HasMany(cls:InstanceClass<BaseType>) {
-    return relation(cls, null, RelationType.HAS_MANY, true);
-}
-export function HasManyThrough(cls:InstanceClass<BaseType>, through:InstanceClass<BaseType>) {
-    return relation(cls, through, RelationType.HAS_MANY_THROUGH, true);
-}
 
-export function HasOne(cls:InstanceClass<BaseType>) {
-    return relation(cls, null, RelationType.HAS_ONE, true);
-}
-export function HasOneThrough(cls:InstanceClass<BaseType>, through:InstanceClass<BaseType>) {
-    return relation(cls, through, RelationType.HAS_ONE_THROUGH, true);
-}
-
-export function BelongsTo(cls:InstanceClass<BaseType>) {
-    return relation(cls, null, RelationType.BELONGS_TO, false);
-}

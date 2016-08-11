@@ -1,7 +1,4 @@
-import {DAO, HasMany, HasManyThrough, HasOne, BelongsTo} from "../lib/dao";
-import {GenreStation} from "./GenreStation";
-import {DB} from "../lib/db";
-import {Genre} from "./Genre";
+import {DAO} from "../lib/dao";
 import {Station} from "./Station";
 export class StationInfo {
     id:number;
@@ -12,7 +9,7 @@ export class StationInfo {
 }
 
 export class StationInfoDAO extends DAO<StationInfo> {
-    constructor(db:DB) {
-        super(db, 'stationInfo', StationInfo);
-    }
+    table = 'stationInfo';
+    text = this.addField('text');
+    //station = this.addBelongsToRelation('station',)
 }

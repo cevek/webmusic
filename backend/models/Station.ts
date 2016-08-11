@@ -1,24 +1,22 @@
-import {DAO, HasMany, HasManyThrough, HasOne} from "../lib/dao";
-import {GenreStation} from "./GenreStation";
-import {DB} from "../lib/db";
-import {Genre} from "./Genre";
-import {StationInfo} from "./StationInfo";
+import {DAO} from "../lib/dao";
+import {GenreStationDAO} from "./GenreStation";
+import {Genre, GenreDAO} from "./Genre";
+import {StationInfo, StationInfoDAO} from "./StationInfo";
 export class Station {
     id:number;
     name:string;
 
-    @HasManyThrough(Genre, GenreStation)
     genres:Genre[];
 
-    @HasOne(StationInfo)
-    info: StationInfo;
+    info:StationInfo;
 
     urls:string[];
     needToConvert:boolean;
 }
 
 export class StationDAO extends DAO<Station> {
-    constructor(db: DB){
-        super(db, 'stations', Station);
-    }
+    table = 'stations';
+    name = this.addField('name');
+    genres = this.addHasManyThroughRelation('genres', GenreDAO, GenreStationDAO);
+    info = this.addHasManyRelation('info', StationInfoDAO);
 }

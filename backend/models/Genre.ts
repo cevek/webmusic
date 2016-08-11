@@ -1,12 +1,13 @@
 import {DAO} from "../lib/dao";
-import {DB} from "../lib/db";
+import {StationDAO} from "./Station";
+import {GenreStationDAO} from "./GenreStation";
 export class Genre {
     id:number;
     name:string;
 }
 
 export class GenreDAO extends DAO<Genre> {
-    constructor(db: DB){
-        super(db, 'genres', Genre);
-    }
+    table = 'genres';
+
+    stations = this.addHasManyThroughRelation('stations', StationDAO, GenreStationDAO);
 }

@@ -142,7 +142,7 @@ export class Expression {
     }
 
     as(name:string) {
-        return new Expression(ExpressionTypes.EQUAL, this, new Attribute(name));
+        return new Expression(ExpressionTypes.EQUAL, this, new Value(escapeValue(name)));
     }
 
     plus(value:RawOrExpression) {
@@ -242,7 +242,7 @@ type OrderExpression = {col:Value, desc?:boolean};
 type SelectOptions = 'STRAIGHT_JOIN' | 'SQL_SMALL_RESULT' | 'SQL_BIG_RESULT' | 'SQL_BUFFER_RESULT' | 'SQL_CACHE' | 'SQL_NO_CACHE' | 'SQL_CALC_FOUND_ROWS' | 'HIGH_PRIORITY' | 'DISTINCT' | 'DISTINCTROW' | 'ALL';
 
 export interface SelectParams {
-    table?: RawOrExpression;
+    table?:RawOrExpression;
     where?:Expression;
     having?:Expression;
     group?:OrderExpression[];
@@ -280,8 +280,8 @@ export class Fun extends Expression {
 }
 
 export class Attribute extends Value {
-    constructor(public name:string) {
-        super(name);
+    constructor(public table:string, public name:string) {
+        super(table ? `${escapeValue(table)}.${escapeValue(name)}`: escapeValue(name));
     }
 }
 
@@ -305,7 +305,7 @@ export function insertSql(table:string, items:any[], values:QueryValues) {
 
 
 function escapeValue(name:string | Expression):string {
-    if (name instanceof Expression){
+    if (name instanceof Expression) {
         return name.toSQL(null);
     }
     return `${name}`;

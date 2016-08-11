@@ -1,19 +1,15 @@
-import {DAO, BelongsTo} from "../lib/dao";
-import {Genre} from "./Genre";
-import {Station} from "./Station";
-import {DB} from "../lib/db";
+import {DAO} from "../lib/dao";
+import {Genre, GenreDAO} from "./Genre";
+import {Station, StationDAO} from "./Station";
 export class GenreStation {
     id:number;
-
-    @BelongsTo(Genre)
     genre:Genre;
-
     station:Station[];
 }
 
-export class GenreStationsDAO extends DAO<GenreStation> {
-    constructor(db:DB) {
-        super(db, 'genreStations', GenreStation);
-    }
+export class GenreStationDAO extends DAO<GenreStation> {
+    table = 'genreStations';
+    genre = this.addBelongsToRelation('genre', GenreDAO);
+    station = this.addBelongsToRelation('station', StationDAO);
 
 }
