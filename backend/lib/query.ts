@@ -51,6 +51,12 @@ export const ExpressionTypes = {
     B_INV: {sql: '$ ~ $', count: 2},
     B_OR: {sql: '$ | $', count: 2},
     B_XOR: {sql: '$ ^ $', count: 2},
+
+
+    LEFT_JOIN: {sql: '$ LEFT JOIN $ ON ($)', count: 3},
+    RIGHT_JOIN: {sql: '$ RIGHT JOIN $ ON ($)', count: 3},
+    INNER_JOIN: {sql: '$ INNER JOIN $ ON ($)', count: 3},
+    OUTER_JOIN: {sql: '$ OUTER JOIN $ ON ($)', count: 3},
 };
 
 type Raw = number | string | Date;
@@ -238,6 +244,8 @@ export class Expression {
     }
 }
 
+
+
 type OrderExpression = {col:Value, desc?:boolean};
 type SelectOptions = 'STRAIGHT_JOIN' | 'SQL_SMALL_RESULT' | 'SQL_BIG_RESULT' | 'SQL_BUFFER_RESULT' | 'SQL_CACHE' | 'SQL_NO_CACHE' | 'SQL_CALC_FOUND_ROWS' | 'HIGH_PRIORITY' | 'DISTINCT' | 'DISTINCTROW' | 'ALL';
 
@@ -272,6 +280,28 @@ export class Value extends Expression {
     }
 }
 
+export class Table extends Value {
+    constructor(public name:string) {
+        super(escapeValue(name));
+    }
+
+    leftJoin(table: Table, on: Expression) {
+        return new Expression(ExpressionTypes.LEFT_JOIN, this, table, on);
+    }
+
+    innerJoin(table: Table, on: Expression) {
+        return new Expression(ExpressionTypes.INNER_JOIN, this, table, on);
+    }
+
+    rightJoin(table: Table, on: Expression) {
+        return new Expression(ExpressionTypes.RIGHT_JOIN, this, table, on);
+    }
+
+    outerJoin(table: Table, on: Expression) {
+        return new Expression(ExpressionTypes.OUTER_JOIN, this, table, on);
+    }
+}
+
 export class Fun extends Expression {
     constructor(public name:string, public args:Expression[]) {
         super(ExpressionTypes.EMPTY);
@@ -280,12 +310,12 @@ export class Fun extends Expression {
 }
 
 export class Attribute extends Value {
-    constructor(public table:string, public name:string) {
-        super(table ? `${escapeValue(table)}.${escapeValue(name)}`: escapeValue(name));
+    constructor(public table:Table, public name:string) {
+        super(table ? `${table.toSQL(null)}.${escapeValue(name)}` : escapeValue(name));
     }
 }
 
-export function insertSql(table:string, items:any[], values:QueryValues) {
+export function insertSql(table:Table, items:any[], values:QueryValues) {
     const keys = Object.keys(items[0]);
     const attrs:string[] = Array(keys.length);
     for (let i = 0; i < keys.length; i++) {
@@ -300,7 +330,7 @@ export function insertSql(table:string, items:any[], values:QueryValues) {
         values.push(row);
     }
 
-    return `INSERT ${escapeValue(table)} INTO (${attrs.join(', ')}) VALUES ?`;
+    return `INSERT ${table.toSQL(null)} INTO (${attrs.join(', ')}) VALUES ?`;
 }
 
 

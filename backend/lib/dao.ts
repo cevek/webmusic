@@ -1,6 +1,6 @@
 "use strict";
 import {DB} from "./db";
-import {Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues} from "./query";
+import {Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table} from "./query";
 import {Transaction} from "./Transaction";
 import {inject} from "./injector";
 
@@ -32,10 +32,10 @@ interface Relation {
 }
 
 export class DAO<T extends BaseType> {
-    protected table:string;
+    protected table:Table;
     protected db = inject(DB);
 
-    id = new Attribute('', 'id');
+    id:Attribute;
 
     protected relations = new Map<typeof DAO, Relation>();
     protected fields = new Map<string, Attribute>();
@@ -155,6 +155,12 @@ export class DAO<T extends BaseType> {
         return field;
     }
 
+    protected setTable(table:string) {
+        this.table = new Table(table);
+        this.id = new Attribute(this.table, 'id');
+        return this.table;
+    }
+
     protected addHasOneRelation(fieldName:string, cls:typeof DAO) {
         return this.addRelation(fieldName, cls, null, RelationType.HAS_ONE);
     }
@@ -182,8 +188,8 @@ export class DAO<T extends BaseType> {
     private addRelation(property:string, cls:typeof DAO, through:typeof DAO, type:RelationType):any {
         //todo: table names
         const relClass = through ? through : cls;
-        const searchByAttr = new Attribute('', this.normalizeField(this.constructor.name) + 'Id');
-        const relSearchByAttr = new Attribute('', this.normalizeField(relClass.name) + 'Id');
+        const searchByAttr = new Attribute(null, this.normalizeField(this.constructor.name) + 'Id');
+        const relSearchByAttr = new Attribute(null, this.normalizeField(relClass.name) + 'Id');
         const isBelongs = type == RelationType.BELONGS_TO;
 
         const relation = {
@@ -191,8 +197,8 @@ export class DAO<T extends BaseType> {
             model: relClass,
             destinationModel: through ? cls : null,
             property,
-            searchByAttr: isBelongs ? new Attribute('', 'id') : searchByAttr,
-            relSearchByAttr: isBelongs ? relSearchByAttr : new Attribute('', 'id')
+            searchByAttr: isBelongs ? new Attribute(null, 'id') : searchByAttr,
+            relSearchByAttr: isBelongs ? relSearchByAttr : new Attribute(null, 'id')
         };
         this.relations.set(cls, relation);
         return relation;

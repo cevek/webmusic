@@ -8,7 +8,7 @@ export class GenreStation {
 }
 
 export class GenreStationDAO extends DAO<GenreStation> {
-    table = 'genreStations';
+    table = this.setTable('genreStations');
     genre = this.addBelongsToRelation('genre', GenreDAO);
     station = this.addBelongsToRelation('station', StationDAO);
 

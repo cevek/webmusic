@@ -7,7 +7,7 @@ export class Genre {
 }
 
 export class GenreDAO extends DAO<Genre> {
-    table = 'genres';
+    table = this.setTable('genres');
 
     stations = this.addHasManyThroughRelation('stations', StationDAO, GenreStationDAO);
 }

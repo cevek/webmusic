@@ -9,7 +9,7 @@ export class StationInfo {
 }
 
 export class StationInfoDAO extends DAO<StationInfo> {
-    table = 'stationInfo';
+    table = this.setTable('stationInfo');
     text = this.addField('text');
     //station = this.addBelongsToRelation('station',)
 }
