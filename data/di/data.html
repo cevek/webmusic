@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+<script type="text/javascript" src="di.js"></script>
+<script type="text/javascript" src="radiotunes.js"></script>
+<script>
+    "use strict";
+    var allChannels = new Map();
+    var allGenres = new Map();
+    var allSimilar = [];
+
+    const channelCollector = ch => {
+        ch.genres = [];
+        ch.similar = [];
+        if (!allChannels.has(ch.key)) {
+            ch._id = ch.id + 1000;
+            allChannels.set(ch.key, ch);
+            allChannels.set(ch.id, ch);
+        }
+    };
+
+    const similarCollector = channel => {
+        if (!channel.similar_channels) {
+            return;
+        }
+        channel.similar_channels.forEach(simCh => {
+            const simChannel = allChannels.get(simCh.similar_channel_id);
+            if (!simChannel) {
+//                throw new Error('channel not found');
+//                console.error('similar channel not found', simCh.similar_channel_id);
+                return;
+            }
+            if (allChannels.has(channel.id) && channel.similar.indexOf(simChannel) == -1) {
+                channel.similar.push(simChannel);
+                allSimilar.push([simChannel, channel]);
+            }
+        });
+    };
+    const filterCollector = ff => {
+        if (ff.key == 'default' || ff.key == 'new') {
+            return;
+        }
+        let f = allGenres.get(ff.key);
+        if (!f) {
+            f = ff;
+            ff._id = ff.id + 10000;
+            allGenres.set(ff.key, ff);
+            f.channels_ = [];
+        }
+        f.channels.forEach(chId => {
+            const channel = allChannels.get(chId);
+            if (!channel) {
+//                throw new Error('channel not found');
+//                console.error('channel from filter not found', f.key, chId);
+                return;
+            }
+            if (f.channels_.indexOf(channel) == -1) {
+                f.channels_.push(channel);
+            }
+            if (channel.genres.indexOf(f) == -1) {
+                channel.genres.push(f);
+            }
+        })
+    };
+
+    const key = '5!2a6b929ebed9df2d9'.replace('!', '');
+
+    diData.channels.forEach(channelCollector);
+    diData.channels.forEach(similarCollector);
+    diData.channel_filters.forEach(filterCollector);
+
+    radiotunesData.channels.forEach(channelCollector);
+    radiotunesData.channels.forEach(similarCollector);
+    radiotunesData.channel_filters.forEach(filterCollector);
+
+    const stationsQuery = [];
+    const similarQuery = [];
+    const genresQuery = [];
+    const genreStationsQuery = [];
+
+    const domains = {
+        1: 'http://prem2.di.fm',
+        2: 'http://prem2.radiotunes.com',
+    };
+
+    for (const [key, value] of allChannels) {
+        if (key == +key) continue;
+        const cover = value.images.default.replace(/^\/\//, 'http://').replace(/\{.*?\}/, '') + '?width=200';
+        const owner = value.di ? 1 : 2;
+        const domain = domains[value.network_id];
+        stationsQuery.push([value._id, value.name, value.description_short, cover, `${domain}/${value.key}_aacp?${key}`, value.network_id, value.key]);
+    }
+
+    for (const [s1, s2] of allSimilar) {
+        similarQuery.push([s1._id, s2._id]);
+    }
+
+    for (const [key, genre] of allGenres) {
+        genresQuery.push([genre._id, genre.name]);
+        for (const channel of genre.channels_) {
+            genreStationsQuery.push([genre._id, channel._id]);
+        }
+    }
+
+    console.log({
+        stationsQuery, similarQuery, genresQuery, genreStationsQuery
+    });
+
+
+    function psql(data) {
+        return data.map(row => `(${row.map(v => `"${v}"`).join(', ')})`).join(',\n');
+    }
+
+    const sql = `
+        START TRANSACTION;
+            INSERT INTO stations (id, name, description, cover, url, owner, foreign_id) VALUES ${psql(stationsQuery)};
+            INSERT INTO genres (id, name) VALUES ${psql(genresQuery)};
+            INSERT INTO genreStations (genreId, stationId) VALUES ${psql(genreStationsQuery)};
+            INSERT INTO similar (stationId1, stationId2) VALUES ${psql(similarQuery)};
+         COMMIT;
+        `;
+
+    // type in console: copy(sql);
+
+</script>
+</body>
+</html>
