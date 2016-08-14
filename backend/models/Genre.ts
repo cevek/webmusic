@@ -1,13 +1,23 @@
 import {DAO} from "../lib/dao";
-import {StationDAO} from "./Station";
-import {GenreStationDAO} from "./GenreStation";
-export class Genre {
+import {Station} from "./Station";
+import {GenreStation} from "./GenreStation";
+import {Table} from "../lib/query";
+
+
+export interface GenreEntity {
     id:number;
     name:string;
+    stations:Station[];
 }
 
-export class GenreDAO extends DAO<Genre> {
-    table = this.setTable('genres');
+export class Genre extends DAO<GenreEntity> {
+    static table = new Table('Genre');
+    static id = Genre.field('id');
+    static Name = Genre.field('name');
 
-    stations = this.addHasManyThroughRelation('stations', StationDAO, GenreStationDAO);
+    static get rel() {
+        return {
+            stations: Genre.hasManyThrough(GenreStation.rel.station, GenreStation.stationId, 'stations')
+        }
+    }
 }

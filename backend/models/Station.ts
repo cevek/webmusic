@@ -1,8 +1,11 @@
 import {DAO} from "../lib/dao";
-import {GenreStationDAO} from "./GenreStation";
-import {Genre, GenreDAO} from "./Genre";
-import {StationInfo, StationInfoDAO} from "./StationInfo";
-export class Station {
+import {GenreStation} from "./GenreStation";
+import {Genre} from "./Genre";
+import {StationInfo} from "./StationInfo";
+import {Table} from "../lib/query";
+import {Track} from "./Track";
+import {StationSimilar} from "./StationSimilar";
+export interface StationEntity {
     id:number;
     name:string;
 
@@ -10,13 +13,25 @@ export class Station {
 
     info:StationInfo;
 
-    urls:string[];
+    url:string;
     needToConvert:boolean;
 }
 
-export class StationDAO extends DAO<Station> {
-    table = this.setTable('stations');
-    name = this.addField('name');
-    genres = this.addHasManyThroughRelation('genres', GenreDAO, GenreStationDAO);
-    info = this.addHasManyRelation('info', StationInfoDAO);
+export class Station extends DAO<StationEntity> {
+    static table = new Table('Station');
+    static id = Station.field('id');
+
+    static Name = Station.field('name');
+    static url = Station.field('url');
+    static needToConvert = Station.field('needToConvert');
+
+    static get rel() {
+        return {
+            genreStations: Station.hasMany(GenreStation, GenreStation.stationId, 'genreStation'),
+            genres: Station.hasManyThrough(GenreStation.rel.genre, GenreStation.stationId, 'genres'),
+            tracks: Station.hasMany(Track, Track.stationId, 'tracks'),
+            similar: Station.hasManyThrough(StationSimilar.rel.station2, StationSimilar.stationId1, 'similar'),
+            info: Station.hasOne(StationInfo, StationInfo.stationId, 'info')
+        }
+    }
 }

@@ -1,13 +1,13 @@
 import {spawn} from "child_process";
 import {ChildProcess} from "child_process";
-import {Station} from "../models/Station";
+import {Station, StationEntity} from "../models/Station";
 export class Recorder {
     ffmpeg:ChildProcess;
     timeout:NodeJS.Timer;
 
-    start(station:Station, duration:number, filename:string) {
+    start(station:StationEntity, duration:number, filename:string) {
         return new Promise((resolve) => {
-            const url = station.urls[0];
+            const url = station.url;
             if (!url) {
                 return resolve();
             }

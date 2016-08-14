@@ -1,15 +1,25 @@
 import {DAO} from "../lib/dao";
-import {Genre, GenreDAO} from "./Genre";
-import {Station, StationDAO} from "./Station";
-export class GenreStation {
+import {Genre} from "./Genre";
+import {Station, StationEntity} from "./Station";
+import {Table} from "../lib/query";
+export class GenreStationEntity {
     id:number;
     genre:Genre;
-    station:Station[];
+    station:StationEntity[];
 }
 
-export class GenreStationDAO extends DAO<GenreStation> {
-    table = this.setTable('genreStations');
-    genre = this.addBelongsToRelation('genre', GenreDAO);
-    station = this.addBelongsToRelation('station', StationDAO);
+export class GenreStation extends DAO<GenreStationEntity> {
+    static table = new Table('GenreStation');
+    static id = GenreStation.field('id');
 
+
+    static genreId = GenreStation.field('genreId');
+    static stationId = GenreStation.field('stationId');
+
+    static get rel() {
+        return {
+            genre: GenreStation.belongsTo(Genre, GenreStation.genreId, 'genre'),
+            station: GenreStation.belongsTo(Station, GenreStation.stationId, 'station'),
+        }
+    }
 }

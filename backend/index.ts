@@ -1,13 +1,13 @@
-import {Student} from "./student";
-import {StationInfo, StationInfoDAO} from "./models/StationInfo";
+import {StationInfo} from "./models/StationInfo";
 import {Recorder} from "./services/Recorder";
-import {GenreDAO} from "./models/Genre";
-import {inject} from "./book";
-import {StationDAO} from "./models/Station";
+import {Station} from "./models/Station";
 import {DBConfig} from "./lib/DBConfig";
-import {bindInjection} from "./lib/injector";
+import {bindInjection, inject} from "./lib/injector";
 import {config} from "./config";
+import {GenreStation} from "./models/GenreStation";
+import {Genre} from "./models/Genre";
 require('source-map-support').install();
+Error.stackTraceLimit = 30;
 
 // const my = inject(MyService);
 // my.todo();
@@ -38,15 +38,26 @@ function runTasks() {
 
 bindInjection(DBConfig, config.db);
 
-new Student();
 
-const station = inject(StationDAO);
-station.findAll({
-    include: [{
-        model: GenreDAO,
-        attributes: [station.name, station.id]
-    }, {model: StationInfoDAO}]
-}).then(data => {
+const stationInfo = inject(StationInfo);
+const genreStation = inject(GenreStation);
+const genre = inject(Genre);
+const station = inject(Station);
+
+async function xtime() {
+
+    return await station.findAll({
+            include: [
+                {
+                    relation: Station.rel.similar,
+                },
+                {
+                    relation: Station.rel.genres
+                }]
+        }
+    )
+}
+xtime().then(data => {
     console.log(JSON.stringify(data, null, 3));
 }).catch(err => console.error(err instanceof Error ? err.stack : err));
 
