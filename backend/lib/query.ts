@@ -245,12 +245,11 @@ export class Expression {
 }
 
 
-
 type OrderExpression = {col:Value, desc?:boolean};
 type SelectOptions = 'STRAIGHT_JOIN' | 'SQL_SMALL_RESULT' | 'SQL_BIG_RESULT' | 'SQL_BUFFER_RESULT' | 'SQL_CACHE' | 'SQL_NO_CACHE' | 'SQL_CALC_FOUND_ROWS' | 'HIGH_PRIORITY' | 'DISTINCT' | 'DISTINCTROW' | 'ALL';
 
 export interface SelectParams {
-    table?:RawOrExpression;
+    table?:Table;
     where?:Expression;
     having?:Expression;
     group?:OrderExpression[];
@@ -278,27 +277,42 @@ export class Value extends Expression {
     constructor(public value:string) {
         super(ExpressionTypes.EMPTY);
     }
+
+    setValue(value: string){
+        this.value = value;
+    }
 }
 
+
+
 export class Table extends Value {
-    constructor(public name:string) {
+    constructor(public name?:string) {
         super(escapeValue(name));
     }
 
-    leftJoin(table: Table, on: Expression) {
+    leftJoin(table:Table, on:Expression) {
         return new Expression(ExpressionTypes.LEFT_JOIN, this, table, on);
     }
 
-    innerJoin(table: Table, on: Expression) {
+    innerJoin(table:Table, on:Expression) {
         return new Expression(ExpressionTypes.INNER_JOIN, this, table, on);
     }
 
-    rightJoin(table: Table, on: Expression) {
+    rightJoin(table:Table, on:Expression) {
         return new Expression(ExpressionTypes.RIGHT_JOIN, this, table, on);
     }
 
-    outerJoin(table: Table, on: Expression) {
+    outerJoin(table:Table, on:Expression) {
         return new Expression(ExpressionTypes.OUTER_JOIN, this, table, on);
+    }
+
+    field(name:string) {
+        return new Attribute(this, name);
+    }
+
+    setName(name: string){
+        this.name = name;
+        this.setValue(escapeValue(name));
     }
 }
 
@@ -354,7 +368,7 @@ export function selectQueryGenerator(params:SelectParams, values:QueryValues) {
         }
         attrs = ' ' + attrsArr.join(', ');
     }
-    const fromTable = escapeValue(params.table as Expression);
+    const fromTable = params.table.toSQL(null);
     if (params.join && params.join.length) {
         let joinArr = Array(params.join.length);
         for (var i = 0; i < params.join.length; i++) {

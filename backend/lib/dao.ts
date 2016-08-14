@@ -4,8 +4,11 @@ import {Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryVa
 import {Transaction} from "./Transaction";
 import {inject} from "./injector";
 
+type DAOX = DAO<BaseType>;
+type DAOC = typeof DAO;
+
 interface Include {
-    model:typeof DAO;
+    relation:Relation;
     params?:Params;
 }
 
@@ -15,30 +18,20 @@ interface Params extends SelectParams {
 }
 
 interface BaseType {
-    id:number;
+    // id:number;
 }
 
-const enum RelationType {
-    HAS_ONE, HAS_ONE_THROUGH, HAS_MANY, HAS_MANY_THROUGH, BELONGS_TO
-}
-
-interface Relation {
-    type:RelationType;
-    model:typeof DAO;
-    destinationModel:typeof DAO;
-    property:string;
-    searchByAttr:Attribute;
-    relSearchByAttr:Attribute;
-}
 
 export class DAO<T extends BaseType> {
+    static name:string;
+    static id:Attribute;
     protected table:Table;
     protected db = inject(DB);
+    static table:Table;
 
     id:Attribute;
 
-    protected relations = new Map<typeof DAO, Relation>();
-    protected fields = new Map<string, Attribute>();
+    static rel:any;
 
     async create(item:T, trx?:Transaction) {
         return await this.createBulk([item], trx);
@@ -60,7 +53,7 @@ export class DAO<T extends BaseType> {
 
     async findAll(params:Params = {}) {
         const values:string[] = [];
-        params.table = this.table;
+        params.table = (this.constructor as DAOC).table;
         const sql = selectQueryGenerator(params, values);
         const result = await this.db.queryAll<T>(sql, values, params && params.trx);
         if (params.include) {
@@ -76,26 +69,44 @@ export class DAO<T extends BaseType> {
     private async includeRelations(includes:Include[], result:T[]) {
         for (let i = 0; i < includes.length; i++) {
             const include = includes[i];
-            await this.processRelation(include.model, include.params, result);
+            await this.processRelation(include.relation, include.params, result, null, include.relation.property);
         }
     }
 
-    protected async processRelation(modelx:typeof DAO, params:Params = {}, result:BaseType[], returnSubResult = false) {
-        const relation = this.relations.get(modelx);
-        const model = relation.model;
-        const modelDAO = inject(model);
-        const hasDestination = !!relation.destinationModel;
-        const destRelation = hasDestination ? modelDAO.relations.get(relation.destinationModel) : null;
-        const isHasMany = relation.type == RelationType.HAS_MANY || relation.type == RelationType.HAS_MANY_THROUGH;
-        const ids = Array(result.length);
-        const attrName = relation.searchByAttr.value;
-        const relationName = relation.relSearchByAttr.value;
-        for (let i = 0; i < result.length; i++) {
-            ids[i] = result[i][relationName];
+    protected async processRelation(relation:Relation, params:Params = {}, result:BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
+        const isBelongs = relation.type == RelationType.BELONGS_TO;
+        let modelDAO:DAOX;
+
+        let aggregateFieldName:string;
+        let from: DDD;
+        let model: DDD;
+        from = relation.fromx;
+        if (relation.through) {
+            model = relation.through.fromx;
         }
-        const cond = relation.searchByAttr.in(ids);
+        else {
+            model = relation.model;
+        }
+        modelDAO = inject(model);
+        aggregateFieldName = isBelongs ? relation.foreignKey.name : from.id.name;
+
+        // todo: hasMany from parameters
+        let isHasMany = relation.type == RelationType.HAS_MANY || relation.type == RelationType.HAS_MANY_THROUGH || parentSubItems;
+
+        const ids = Array(result.length);
+
+        const foreignKeyName = isBelongs ? model.id.name : relation.foreignKey.name;
+        // console.log('aggregateFieldName', aggregateFieldName);
+        // console.log('foreignKeyName', foreignKeyName);
+
+
+        for (let i = 0; i < result.length; i++) {
+            ids[i] = result[i][aggregateFieldName];
+        }
+
+        const cond = isBelongs ? model.id.in(ids) : relation.foreignKey.in(ids);
         let localParams = params;
-        if (hasDestination) {
+        if (relation.through) {
             localParams = {where: cond};
         } else {
             if (!localParams.where) {
@@ -104,105 +115,126 @@ export class DAO<T extends BaseType> {
             localParams.where = localParams.where.and(cond);
         }
 
-        const subResult = await inject(model).findAll(localParams);
+        const subResult = await modelDAO.findAll(localParams);
 
-        let destResult:BaseType[];
-        let destKey:string;
-        if (hasDestination) {
-            if (destRelation.type == RelationType.BELONGS_TO) {
-                destKey = destRelation.relSearchByAttr.name;
-                destResult = await modelDAO.processRelation(relation.destinationModel, params, subResult, true);
-            }
-            else {
-                throw new Error(`Has not ${destRelation.model.constructor.name} belongsTo relation on ${model.constructor.name}`);
+        if (relation.through) {
+            const modelDAO = inject(relation.through.model);
+            await modelDAO.processRelation(relation.through, params, subResult, result, property, subResult, aggregateFieldName, foreignKeyName);
+            return;
+        }
+
+        let map: {};
+        if (parentSubItems) {
+            map = {};
+            for (let i = 0; i < parentSubItems.length; i++) {
+                let item = parentSubItems[i];
+                const key = item[aggregateFieldName];
+                let oldVal = map[key];
+                if (!oldVal) {
+                    map[key] = oldVal = [];
+                }
+                oldVal.push(item[parentFK]);
             }
         }
 
         const subIdsMap = {};
         for (let i = 0; i < subResult.length; i++) {
-            let subItem = subResult[i];
-            const selfId = subItem[attrName];
-            if (hasDestination) {
-                subItem = destResult[subItem[destKey]];
+            let item = subResult[i];
+            let keys = [item[foreignKeyName]];
+            if (map) {
+                keys = map[item[foreignKeyName]];
             }
-            if (isHasMany) {
-                let val = subIdsMap[selfId];
-                if (!val) {
-                    val = subIdsMap[selfId] = [];
+            //todo: need to optimize
+            for (let j = 0; j < keys.length; j++) {
+                const key = keys[j];
+
+                if (isHasMany) {
+                    let val = subIdsMap[key];
+                    if (!val) {
+                        val = subIdsMap[key] = [];
+                    }
+                    val.push(item);
                 }
-                val.push(subItem);
-            }
-            else {
-                subIdsMap[selfId] = subItem;
+                else {
+                    subIdsMap[key] = item;
+                }
             }
         }
 
-        if (returnSubResult) {
-            return subIdsMap;
+        if (parentResult) {
+            result = parentResult;
         }
-
+        if (!parentAggregateFieldName) {
+            parentAggregateFieldName = aggregateFieldName;
+        }
         for (let i = 0; i < result.length; i++) {
             const item = result[i];
-            const key = item[relationName];
-            item[relation.property] = subIdsMap[key];
+            const key = item[parentAggregateFieldName];
+            let prop = item[property];
+            const value = subIdsMap[key];
+            if (prop) {
+                prop = prop.concat(value);
+            } else {
+                prop = value;
+            }
+            item[property] = prop;
         }
         return null;
     }
 
-    protected addField(fieldName:string) {
-        const field = new Attribute(this.table, fieldName);
-        this.fields.set(fieldName, field);
-        return field;
+    static field(name:string) {
+        return new Attribute(this.table, name);
     }
 
-    protected setTable(table:string) {
-        this.table = new Table(table);
-        this.id = new Attribute(this.table, 'id');
-        return this.table;
+    static hasMany(cls:DDD, foreignKey:Attribute, property:string) {
+        return new Relation(RelationType.HAS_MANY, this, cls, null, foreignKey, property)
     }
 
-    protected addHasOneRelation(fieldName:string, cls:typeof DAO) {
-        return this.addRelation(fieldName, cls, null, RelationType.HAS_ONE);
+    static hasManyThrough(through:Relation, foreignKey:Attribute, property:string) {
+        return new Relation(RelationType.HAS_MANY_THROUGH, this, null, through, foreignKey, property);
     }
 
-    protected addHasOneThroughRelation(fieldName:string, cls:typeof DAO, through:typeof DAO) {
-        return this.addRelation(fieldName, cls, through, RelationType.HAS_ONE_THROUGH);
+    static hasOne(cls:DDD, foreignKey:Attribute, property:string) {
+        return new Relation(RelationType.HAS_ONE, this, cls, null, foreignKey, property)
     }
 
-    protected addHasManyRelation(fieldName:string, cls:typeof DAO) {
-        return this.addRelation(fieldName, cls, null, RelationType.HAS_MANY);
+    static hasOneThrough(through:Relation, foreignKey:Attribute, property:string) {
+        return new Relation(RelationType.HAS_ONE_THROUGH, this, null, through, foreignKey, property)
     }
 
-    protected addHasManyThroughRelation(fieldName:string, cls:typeof DAO, through:typeof DAO) {
-        return this.addRelation(fieldName, cls, through, RelationType.HAS_MANY_THROUGH);
-    }
-
-    protected addBelongsToRelation(fieldName:string, cls:typeof DAO) {
-        return this.addRelation(fieldName, cls, null, RelationType.BELONGS_TO);
-    }
-
-    private normalizeField(name:string) {
-        return name.toLowerCase().replace(/dao$/, '');
-    }
-
-    private addRelation(property:string, cls:typeof DAO, through:typeof DAO, type:RelationType):any {
-        //todo: table names
-        const relClass = through ? through : cls;
-        const searchByAttr = new Attribute(null, this.normalizeField(this.constructor.name) + 'Id');
-        const relSearchByAttr = new Attribute(null, this.normalizeField(relClass.name) + 'Id');
-        const isBelongs = type == RelationType.BELONGS_TO;
-
-        const relation = {
-            type,
-            model: relClass,
-            destinationModel: through ? cls : null,
-            property,
-            searchByAttr: isBelongs ? new Attribute(null, 'id') : searchByAttr,
-            relSearchByAttr: isBelongs ? relSearchByAttr : new Attribute(null, 'id')
-        };
-        this.relations.set(cls, relation);
-        return relation;
+    static belongsTo(cls:DDD, foreignKey:Attribute, property:string) {
+        return new Relation(RelationType.BELONGS_TO, this, cls, null, foreignKey, property)
     }
 }
 
 
+const enum RelationType {
+    HAS_ONE, HAS_ONE_THROUGH, HAS_MANY, HAS_MANY_THROUGH, BELONGS_TO
+}
+
+interface DDD {
+    new ():DAOX;
+    table:Table;
+    id:Attribute;
+}
+
+class Relation {
+    type:RelationType;
+    cls:DDD;
+    model:DDD;
+    through:Relation;
+    fromx:DDD;
+    property:string;
+
+    foreignKey:Attribute;
+
+    constructor(type:RelationType, from:DDD, cls:DDD, through:Relation, foreignKey:Attribute, property:string) {
+        this.type = type;
+        this.fromx = from;
+        this.cls = cls;
+        this.model = cls;
+        this.through = through;
+        this.foreignKey = foreignKey;
+        this.property = property;
+    }
+}
