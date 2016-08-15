@@ -15,6 +15,12 @@ export interface StationEntity {
 
     url:string;
     needToConvert:boolean;
+
+    slug:string;
+    cover:string;
+
+    owner:number;
+    foreignId:string;
 }
 
 export class Station extends DAO<StationEntity> {
@@ -24,6 +30,11 @@ export class Station extends DAO<StationEntity> {
     static Name = Station.field('name');
     static url = Station.field('url');
     static needToConvert = Station.field('needToConvert');
+    static slug = Station.field('slug');
+    static cover = Station.field('cover');
+
+    static owner = Station.field('owner');
+    static foreignId = Station.field('foreignId');
 
     static get rel() {
         return {
