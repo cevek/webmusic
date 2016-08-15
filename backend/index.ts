@@ -14,7 +14,7 @@ bindInjection(DBConfig, config.db);
 
 let runnedTasks = 0;
 const limitTask = 50;
-const duration = 60 * 60;
+const duration = 30 * 60;
 const logger = inject(Logger);
 async function runTasks() {
     if (runnedTasks >= limitTask) {

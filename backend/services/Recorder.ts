@@ -22,7 +22,7 @@ export class Recorder {
     logger = inject(Logger);
 
 
-    maxPauseBreak = 5000;
+    maxPauseBreak = 10000;
     maxTimeout:number;
 
     constructor(station:StationEntity, duration:number) {
@@ -98,18 +98,14 @@ export class Recorder {
             }
             const options = {};
             const args:string[] = [];
-            args.push('-i', `${url}`, '-y', '-t', this.duration.toString(), '-bsf:a', 'aac_adtstoasc');
+            args.push('-i', `${url}`, '-y', '-t', this.duration.toString()/*, '-bsf:a', 'aac_adtstoasc'*/);
             if (this.station.cover) {
                 // args.push('-i', `"${station.cover}"`, '-c copy -map 1');
             }
-            if (this.station.needToConvert) {
-                args.push('-c:a', 'libfdk_aac', '-profile:a', 'aac_he_v2', '-b:a 32k');
-            } else {
-                args.push('-c:a', 'copy');
-            }
+            args.push('-c:a', 'libfdk_aac', '-profile:a', 'aac_he_v2', '-b:a', '32k');
             args.push(`${(config.musicFilesDir + this.filename)}`);
 
-            // this.logger.log('Start process', 'ffmpeg ' + args.join(' '));
+            this.logger.log('Start process', 'ffmpeg ' + args.join(' '));
 
             this.ffmpeg = spawn(`ffmpeg`, args, options);
 
