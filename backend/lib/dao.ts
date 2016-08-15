@@ -1,8 +1,11 @@
 "use strict";
 import {DB} from "./db";
-import {Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table} from "./query";
+import {
+    Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table, updateSql
+} from "./query";
 import {Transaction} from "./Transaction";
 import {inject} from "./injector";
+import {ResultSetHeader} from "./Connection";
 
 type DAOX = DAO<BaseType>;
 type DAOC = typeof DAO;
@@ -25,7 +28,6 @@ interface BaseType {
 export class DAO<T extends BaseType> {
     static name:string;
     static id:Attribute;
-    protected table:Table;
     protected db = inject(DB);
     static table:Table;
 
@@ -37,13 +39,22 @@ export class DAO<T extends BaseType> {
         return await this.createBulk([item], trx);
     }
 
+    async update(item:T, id: number, trx?:Transaction) {
+        const values:QueryValues = [];
+        const ctor = this.constructor as DAOC;
+        const result = await this.db.query(updateSql(ctor.table, item, ctor.id.equal(id), values), values, trx) as ResultSetHeader;
+        return result.affectedRows;
+    }
+
     async createBulk(items:T[], trx?:Transaction) {
         const values:QueryValues = [];
-        return await this.db.query(insertSql(this.table, items, values), [values], trx);
+        const ctor = this.constructor as DAOC;
+        const result = await this.db.query(insertSql(ctor.table, items, values), [values], trx) as ResultSetHeader;
+        return result.insertId;
     }
 
     async findById(id:number, params:Params = {}) {
-        params.table = this.table;
+        params.table = (this.constructor as DAOC).table;
         if (!params.where) {
             params.where = wexpr();
         }

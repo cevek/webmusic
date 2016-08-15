@@ -12,3 +12,11 @@ export class Connection {
         this.pool = mysql.createPool(config);
     }
 }
+
+export interface ResultSetHeader {
+    fieldCount:number,
+    affectedRows:number
+    insertId:number,
+    serverStatus:number,
+    warningStatus:number
+}

@@ -52,11 +52,14 @@ export const ExpressionTypes = {
     B_OR: {sql: '$ | $', count: 2},
     B_XOR: {sql: '$ ^ $', count: 2},
 
+    ASC: {sql: '$ ASC', count: 1},
+    DESC: {sql: '$ DESC', count: 1},
 
-    LEFT_JOIN: {sql: '$ LEFT JOIN $ ON ($)', count: 3},
-    RIGHT_JOIN: {sql: '$ RIGHT JOIN $ ON ($)', count: 3},
-    INNER_JOIN: {sql: '$ INNER JOIN $ ON ($)', count: 3},
-    OUTER_JOIN: {sql: '$ OUTER JOIN $ ON ($)', count: 3},
+
+    LEFT_JOIN: {sql: 'LEFT JOIN $ ON ($)', count: 2},
+    RIGHT_JOIN: {sql: 'RIGHT JOIN $ ON ($)', count: 2},
+    INNER_JOIN: {sql: 'INNER JOIN $ ON ($)', count: 2},
+    OUTER_JOIN: {sql: 'OUTER JOIN $ ON ($)', count: 2},
 };
 
 type Raw = number | string | Date;
@@ -211,6 +214,14 @@ export class Expression {
         return new Expression(ExpressionTypes.B_XOR, this, value);
     }
 
+    asc() {
+        return new Expression(ExpressionTypes.ASC, this);
+    }
+
+    desc() {
+        return new Expression(ExpressionTypes.DESC, this);
+    }
+
     toSQL(params:any[]):string {
         let sql = this.type.sql;
         let paramsCount = this.type.count;
@@ -252,12 +263,12 @@ export interface SelectParams {
     table?:Table;
     where?:Expression;
     having?:Expression;
-    group?:OrderExpression[];
-    order?:OrderExpression[];
+    group?:Expression[] | Expression;
+    order?:Expression[] | Expression;
     limit?:number;
     offset?:number;
-    attributes?:Expression[];
-    join?:Join[];
+    attributes?:Expression[] | Expression;
+    join?:Expression;
     selectOptions?:SelectOptions[];
     lock?:'X' | 'S';
 }
@@ -278,11 +289,10 @@ export class Value extends Expression {
         super(ExpressionTypes.EMPTY);
     }
 
-    setValue(value: string){
+    setValue(value:string) {
         this.value = value;
     }
 }
-
 
 
 export class Table extends Value {
@@ -290,27 +300,31 @@ export class Table extends Value {
         super(escapeValue(name));
     }
 
-    leftJoin(table:Table, on:Expression) {
-        return new Expression(ExpressionTypes.LEFT_JOIN, this, table, on);
+    leftJoinOn(on:Expression) {
+        return new Expression(ExpressionTypes.LEFT_JOIN, this, on);
     }
 
-    innerJoin(table:Table, on:Expression) {
-        return new Expression(ExpressionTypes.INNER_JOIN, this, table, on);
+    innerJoinOn(on:Expression) {
+        return new Expression(ExpressionTypes.INNER_JOIN, this, on);
     }
 
-    rightJoin(table:Table, on:Expression) {
-        return new Expression(ExpressionTypes.RIGHT_JOIN, this, table, on);
+    rightJoinOn(on:Expression) {
+        return new Expression(ExpressionTypes.RIGHT_JOIN, this, on);
     }
 
-    outerJoin(table:Table, on:Expression) {
-        return new Expression(ExpressionTypes.OUTER_JOIN, this, table, on);
+    outerJoinOn(on:Expression) {
+        return new Expression(ExpressionTypes.OUTER_JOIN, this, on);
     }
 
     field(name:string) {
         return new Attribute(this, name);
     }
 
-    setName(name: string){
+    allFields() {
+        return new Attribute(this, '*');
+    }
+
+    setName(name:string) {
         this.name = name;
         this.setValue(escapeValue(name));
     }
@@ -344,7 +358,7 @@ export function insertSql(table:Table, items:any[], values:QueryValues) {
         values.push(row);
     }
 
-    return `INSERT ${table.toSQL(null)} INTO (${attrs.join(', ')}) VALUES ?`;
+    return `INSERT INTO ${table.toSQL(null)} (${attrs.join(', ')}) VALUES ?`;
 }
 
 
@@ -355,49 +369,45 @@ function escapeValue(name:string | Expression):string {
     return `${name}`;
 }
 
+function toSQL(val:any, values:QueryValues) {
+    if (val instanceof Expression) {
+        return val.toSQL(values);
+    }
+    if (val instanceof Array) {
+        const x:string[] = Array(val.length);
+        for (let i = 0; i < val.length; i++) {
+            x[i] = toSQL(val[i], values);
+        }
+        return x.join(', ');
+    }
+    values.push(val);
+    return '?';
+}
+
 
 export function selectQueryGenerator(params:SelectParams, values:QueryValues) {
     let selectOptions = '', attrs = ' *', join = '', where = '', having = '', group = '', order = '', limit = '', lock = '';
     if (params.selectOptions) {
         selectOptions = ' ' + params.selectOptions.join(' ');
     }
-    if (params.attributes && params.attributes.length) {
-        let attrsArr = Array(params.attributes.length);
-        for (var i = 0; i < params.attributes.length; i++) {
-            attrsArr[i] = params.attributes[i].toSQL(values);
-        }
-        attrs = ' ' + attrsArr.join(', ');
+    if (params.attributes) {
+        attrs = ` ${toSQL(params.attributes, values)}`;
     }
-    const fromTable = params.table.toSQL(null);
-    if (params.join && params.join.length) {
-        let joinArr = Array(params.join.length);
-        for (var i = 0; i < params.join.length; i++) {
-            const joinItem = params.join[i];
-            joinArr[i] = `${joinItem.type ? ` ${joinItem.type}` : ''} JOIN ${joinItem.table.toSQL(values)} ON ${joinItem.on.toSQL(values)}`;
-        }
-        join = joinArr.join('');
+    const fromTable = params.table.toSQL(values);
+    if (params.join) {
+        join = ` ${params.join.toSQL(values)}`;
     }
     if (params.where) {
         where = ` WHERE ${params.where.toSQL(values)}`;
     }
-    if (params.group && params.group.length) {
-        let groupArr = Array(params.group.length);
-        for (var i = 0; i < params.group.length; i++) {
-            const groupItem = params.group[i];
-            groupArr[i] = groupItem.col.toSQL(values) + groupItem.desc ? ' DESC' : '';
-        }
-        group = ` GROUP BY ${groupArr.join(', ')}`;
+    if (params.group) {
+        group = ` GROUP BY ${toSQL(params.group, values)}`;
     }
     if (params.having) {
         having = ` HAVING ${params.having.toSQL(values)}`;
     }
-    if (params.order && params.order.length) {
-        let orderArr = Array(params.order.length);
-        for (var i = 0; i < params.order.length; i++) {
-            const orderItem = params.order[i];
-            orderArr[i] = orderItem.col.toSQL(values) + orderItem.desc ? ' DESC' : '';
-        }
-        order = ` ORDER BY ${orderArr.join(', ')}`;
+    if (params.order) {
+        order = ` ORDER BY ${toSQL(params.order, values)}`;
     }
     if (params.limit) {
         limit = ` LIMIT ?, ?`;
@@ -410,17 +420,17 @@ export function selectQueryGenerator(params:SelectParams, values:QueryValues) {
     return sql;
 }
 
-export function updateSql(table:string, item:any, where:Expression, values:QueryValues) {
+export function updateSql(table:Table, item:any, condition:Expression, values:QueryValues) {
     const items:string[] = [];
     for (const key in item) {
-        items.push(new Value(key).assign(item[key]).toSQL(values));
+        const value = item[key];
+        if (value !== void 0) {
+            items.push(new Value(key).assign(value).toSQL(values));
+        }
     }
-    return `UPDATE ${new Value(table).toSQL(values)} SET ${items.join(', ')} WHERE ${where.toSQL(values)}`;
-}
-
-export function whereSql(params:Expression) {
-    if (params instanceof Expression) {
-        return params.toSQL(null);
+    let where = '';
+    if (condition) {
+        where = ` WHERE ${condition.toSQL(values)}`;
     }
-    return '';
+    return `UPDATE ${table.toSQL(values)} SET ${items.join(', ')}${where}`;
 }
