@@ -20,11 +20,11 @@
 
 
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '1.mp3', true);
+    xhr.open('GET', '1.mp4', true);
     xhr.responseType = 'arraybuffer';
     xhr.onload = function (e) {
         if (this.status == 200) {
-            const blob = new Blob([this.response], {type: 'audio/mpeg'});
+            const blob = new Blob([this.response], {type: 'audio/mp4'});
             var blobURL = window.URL.createObjectURL(blob);
             document.body.appendChild(audio);
             audio.src = blobURL;
