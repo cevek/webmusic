@@ -16,6 +16,7 @@ let runnedTasks = 0;
 const limitTask = 50;
 const duration = 30 * 60;
 const logger = inject(Logger);
+const minDiffDays = 1;
 async function runTasks() {
     if (runnedTasks >= limitTask) {
         return;
@@ -24,8 +25,9 @@ async function runTasks() {
     const count = limitTask - runnedTasks;
     const results = await station.findAll({
         attributes: Station.table.allFields(),
-        join: Track.table.leftJoinOn(Station.id.equal(Track.stationId)),
+        table: Station.table.leftJoin(Track.table, Station.id.equal(Track.stationId)),
         group: Station.id.asc(),
+        where: new Fun('DATEDIFF', [Track.createdAt, new Date()]).greatOrEqualThan(minDiffDays),
         order: new Fun('max', [Track.createdAt]).asc(),
         limit: count
     });
