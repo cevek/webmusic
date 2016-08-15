@@ -39,17 +39,24 @@ export class DAO<T extends BaseType> {
         return await this.createBulk([item], trx);
     }
 
-    async update(item:T, id: number, trx?:Transaction) {
+    async update(item:T, id:number, trx?:Transaction) {
         const values:QueryValues = [];
         const ctor = this.constructor as DAOC;
-        const result = await this.db.query(updateSql(ctor.table, item, ctor.id.equal(id), values), values, trx) as ResultSetHeader;
+        const result = await this.db.query(updateSql({
+            table: ctor.table,
+            value: item,
+            where: ctor.id.equal(id)
+        }, values), values, trx) as ResultSetHeader;
         return result.affectedRows;
     }
 
     async createBulk(items:T[], trx?:Transaction) {
         const values:QueryValues = [];
         const ctor = this.constructor as DAOC;
-        const result = await this.db.query(insertSql(ctor.table, items, values), [values], trx) as ResultSetHeader;
+        const result = await this.db.query(insertSql({
+            table: ctor.table,
+            objValues: items
+        }, values), [values], trx) as ResultSetHeader;
         return result.insertId;
     }
 
@@ -64,7 +71,9 @@ export class DAO<T extends BaseType> {
 
     async findAll(params:Params = {}) {
         const values:string[] = [];
-        params.table = (this.constructor as DAOC).table;
+        if (!params.table) {
+            params.table = (this.constructor as DAOC).table;
+        }
         const sql = selectQueryGenerator(params, values);
         const result = await this.db.queryAll<T>(sql, values, params && params.trx);
         if (params.include) {
@@ -84,13 +93,13 @@ export class DAO<T extends BaseType> {
         }
     }
 
-    protected async processRelation(relation:Relation, params:Params = {}, result:BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
+    protected async processRelation(relation:Relation, params:Params = {}, result:BaseType[], parentResult:BaseType[], property:string, parentSubItems?:BaseType[], parentAggregateFieldName?:string, parentFK?:string) {
         const isBelongs = relation.type == RelationType.BELONGS_TO;
         let modelDAO:DAOX;
 
         let aggregateFieldName:string;
-        let from: DDD;
-        let model: DDD;
+        let from:DDD;
+        let model:DDD;
         from = relation.fromx;
         if (relation.through) {
             model = relation.through.fromx;
@@ -134,7 +143,7 @@ export class DAO<T extends BaseType> {
             return;
         }
 
-        let map: {};
+        let map:{};
         if (parentSubItems) {
             map = {};
             for (let i = 0; i < parentSubItems.length; i++) {
