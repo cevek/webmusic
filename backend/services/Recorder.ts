@@ -1,12 +1,11 @@
-import {spawn} from "child_process";
-import {ChildProcess} from "child_process";
+import {spawn, ChildProcess} from "child_process";
 import {StationEntity} from "../models/Station";
-import {config} from "../config";
 import {Track} from "../models/Track";
 import {inject} from "../lib/injector";
 import {Logger} from "../lib/Logger";
 import {radioServices} from "./RadioService";
 import {statSync} from "fs";
+import {Config} from "../config";
 
 interface RecordResult {
     info:string;
@@ -23,6 +22,7 @@ export class Recorder {
     duration:number;
     filename:string;
     fullFilename:string;
+    config = inject(Config);
 
     logger = inject(Logger);
 
@@ -34,7 +34,7 @@ export class Recorder {
         this.station = station;
         this.duration = duration;
         this.filename = `${radioServices.get(station.owner).name}_${station.slug}_${(Date.now() / 1000 | 0)}.mp4`;
-        this.fullFilename = config.musicFilesDir + this.filename;
+        this.fullFilename = this.config.musicFilesDir + this.filename;
     }
 
     async start() {

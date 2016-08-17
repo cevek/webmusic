@@ -1,9 +1,10 @@
-export var config = {
-    db: {
-        user: 'root',
-        password: '',
-        database: 'webmusic'
-    },
-    musicFilesDir: '/Users/cody/Downloads/webmusic/',
-    maxCapacity: 1024 * 1024 * 1024,
-};
+export class Config {
+    db:{
+        user:string,
+        password:string,
+        database:string
+    }
+    musicFilesDir:string;
+    maxCapacity:number;
+    limitConcurentProcess:number;
+}
