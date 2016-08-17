@@ -91,7 +91,7 @@ export class DAO<T extends BaseType> {
         const result = await this.db.query(insertSql({
             table: ctor.table,
             objValues: items
-        }, values), [values], trx) as ResultSetHeader;
+        }, values), values, trx) as ResultSetHeader;
         return result.insertId;
     }
 

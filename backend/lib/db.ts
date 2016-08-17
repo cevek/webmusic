@@ -10,7 +10,7 @@ export class DB {
     protected connection = inject(Connection);
 
     async query<T>(query:string, values?:QueryValues, trx?:Transaction):Promise<T> {
-        //this.logger.log('query', query, values);
+        // this.logger.log('query', query, values);
 
         var connection = trx ? trx.connection : await this.getConnection();
         var res = await (new Promise<T>((resolve, reject)=> {

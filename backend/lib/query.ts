@@ -77,7 +77,8 @@ export const ExpressionTypes = {
     LIMIT: {sql: '$ LIMIT $', count: 2},
     LIMIT_OFFSET: {sql: '$ LIMIT $, $', count: 3},
 
-    VALUES: {sql: '$ VALUES $', count: 1},
+    COLUMNS: {sql: '$ ($)', count: 2},
+    VALUES: {sql: '$ VALUES $', count: 2},
 
     SET: {sql: '$ SET $', count: 2},
     ON_DUPLICATE_KEY: {sql: '$ ON DUPLICATE KEY UPDATE $', count: 2},
@@ -289,6 +290,10 @@ export class Expression {
         return new Expression(ExpressionTypes.SET, this, value);
     }
 
+    columns(value:RawOrExpression[][] | RawOrExpression[] | RawOrExpression) {
+        return new Expression(ExpressionTypes.COLUMNS, this, value);
+    }
+
     values(value:RawOrExpression[][] | RawOrExpression[] | RawOrExpression) {
         return new Expression(ExpressionTypes.VALUES, this, value);
     }
@@ -336,6 +341,12 @@ export class Expression {
             args.push(toSQL(this.val1, params) || '*');
 
             return `SELECT ${args.join(' ')}`;
+        }
+        if (this.type === ExpressionTypes.VALUES) {
+            //todo
+            const sql = toSQL(this.val1, params) + ' VALUES ?';
+            params.push(this.val2);
+            return sql;
         }
         for (var i = 0; i < paramsCount; i++) {
             const val = i == 0 ? this.val1 : (i == 1 ? this.val2 : this.val3);
@@ -569,28 +580,30 @@ export function insertSql(params:InsertParams, values:QueryValues) {
         query = query.partition(params.partition);
     }
     if (params.cols) {
-        query = query.set(params.cols);
+        //todo
+        // query = query.set(params.cols);
     }
     if (params.values) {
-        query = query.values(params.values);
+        //todo
+        // query = query.values(params.values);
     }
     if (params.objValues && params.objValues.length > 0) {
         const keys = Object.keys(params.objValues[0]);
-        const attrs:string[] = Array(keys.length);
-        const values:Expression[][] = [];
+        const attrs:Expression[] = Array(keys.length);
+        const vals:Expression[][] = [];
         for (let i = 0; i < keys.length; i++) {
-            attrs[i] = escapeValue(keys[i]);
+            attrs[i] = new Value(keys[i]);
         }
+        query = query.columns(attrs);
         for (let i = 0; i < params.objValues.length; i++) {
             const item = params.objValues[i];
             const row = Array(keys.length);
             for (let j = 0; j < keys.length; j++) {
                 row[j] = item[keys[j]];
             }
-            values.push(row);
+            vals.push(row);
         }
-        query = query.set(attrs);
-        query = query.values(values);
+        query = query.values(vals);
     }
     return toSQL(query, values);
 }
