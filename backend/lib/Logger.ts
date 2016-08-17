@@ -1,5 +1,5 @@
 export class Logger {
-    constructor(public name = ''){
+    constructor(public name = 'main'){
 
     }
     log(...args:any[]) {

@@ -7,10 +7,10 @@ import {Logger} from "../lib/Logger";
 
 export class FileSync {
     logger = new Logger(this.constructor.name);
+    track = inject(Track);
 
     async sync() {
-        const track = inject(Track);
-        const tracks = await track.findAll({
+        const tracks = await this.track.findAll({
             where: Track.error.equal(0),
             order: Track.filename
         });
@@ -26,14 +26,13 @@ export class FileSync {
             unlinkSync(config.musicFilesDir + file);
         }
         if (removeTracks.length) {
-            await track.removeAll(removeTracks.map(t => t.id));
+            await this.track.removeAll(removeTracks.map(t => t.id));
             this.logger.log('removed tracks', removeTracks.map(t => t.id));
         }
     }
 
     async setErrorToAllNonStoppedTracks() {
-        const track = inject(Track);
-        const affected = await track.updateCustom({
+        const affected = await this.track.updateCustom({
             set: Track.error.assign(1), //todo: , info: Track.info.plus('\nSet error after restart')
             where: Track.duration.equal(0).and(Track.error.equal(0))
         })
@@ -42,8 +41,25 @@ export class FileSync {
         }
     }
 
-    async removeOldTracks(){
-        await this.setErrorToAllNonStoppedTracks();
-        //todo
+    async removeOldTracks() {
+        const tracks = await this.track.findAll({
+            attributes: [Track.id, Track.size],
+            order: Track.createdAt.desc()
+        });
+        let tracksToRemove:ITrack[] = [];
+        let currSize = 0;
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            currSize += track.size;
+            if (currSize > config.maxCapacity) {
+                tracksToRemove = tracks.slice(i);
+                break;
+            }
+        }
+        if (tracksToRemove.length) {
+            await this.track.removeAll(tracksToRemove.map(t => t.id));
+            this.logger.log('removed old tracks', tracksToRemove.length)
+        }
+        await this.sync();
     }
 }

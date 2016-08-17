@@ -5,8 +5,5 @@ export var config = {
         database: 'webmusic'
     },
     musicFilesDir: '/Users/cody/Downloads/webmusic/',
-    onwers: {
-        1: 'di',
-        2: 'rt',
-    }
+    maxCapacity: 1024 * 1024 * 1024,
 };

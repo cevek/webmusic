@@ -12,6 +12,7 @@ export interface ITrack {
     endedAt:Date;
     error:number;
     breaks:number;
+    size:number;
 }
 
 export class Track extends DAO<ITrack> {
@@ -27,6 +28,7 @@ export class Track extends DAO<ITrack> {
     static endedAt = Track.field('endedAt');
     static error = Track.field('error');
     static breaks = Track.field('breaks');
+    static size = Track.field('size');
 
     static get rel() {
         return {

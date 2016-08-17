@@ -8,6 +8,7 @@ import {Track} from "./models/Track";
 import {Fun} from "./lib/query";
 import {Logger} from "./lib/Logger";
 import {FileSync} from "./services/FileSync";
+import {sleep} from "./lib/Utils";
 require('source-map-support').install();
 Error.stackTraceLimit = 30;
 
@@ -22,8 +23,6 @@ async function runTasks() {
     if (runnedTasks >= limitTask) {
         return;
     }
-    const fileSync = new FileSync();
-    await fileSync.sync();
     const station = inject(Station);
     const count = limitTask - runnedTasks;
     const results = await station.findAll({
@@ -51,7 +50,14 @@ async function runTasks() {
 
 async function xtime() {
     const fileSync = inject(FileSync);
+    await fileSync.setErrorToAllNonStoppedTracks();
     await fileSync.removeOldTracks();
-    await runTasks()
+    await runTasks();
+
+    while (true) {
+        await sleep(60 * 60 * 1000);
+        await fileSync.removeOldTracks();
+    }
 }
+
 xtime().catch(err => console.error(err instanceof Error ? err.stack : err));
