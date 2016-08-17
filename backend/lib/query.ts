@@ -56,6 +56,7 @@ export const ExpressionTypes = {
     DESC: {sql: '$ DESC', count: 1},
 
     DEFAULT: {sql: '$ DEFAULT', count: 1},
+    NULL: {sql: '$ NULL', count: 1},
 
     LEFT_JOIN: {sql: '$ LEFT JOIN $ ON ($)', count: 3},
     RIGHT_JOIN: {sql: '$ RIGHT JOIN $ ON ($)', count: 3},
@@ -66,6 +67,7 @@ export const ExpressionTypes = {
     UPDATE: {sql: 'UPDATE $', count: 1},
     INSERT_INTO: {sql: 'INSERT INTO $', count: 1},
     REPLACE: {sql: 'REPLACE $', count: 1},
+    DELETE: {sql: 'DELETE FROM $', count: 1},
 
     FROM: {sql: '$ FROM $', count: 2},
     WHERE: {sql: '$ WHERE $', count: 2},
@@ -322,6 +324,9 @@ export class Expression {
             paramsCount = 1;
             this.val1 = this.val2;
         }
+        if (this.type === ExpressionTypes.IN && (!this.val2 || (this.val2 instanceof Array && this.val2.length == 0))) {
+            this.val2 = null;
+        }
         if (this.type === ExpressionTypes.SELECT) {
             const args:string[] = [];
             if (this.val2) {
@@ -334,7 +339,7 @@ export class Expression {
         for (var i = 0; i < paramsCount; i++) {
             const val = i == 0 ? this.val1 : (i == 1 ? this.val2 : this.val3);
             if (val instanceof Expression) {
-                sql = sql.replace('$', val.toSQL(params));
+                sql = sql.replace('$', toSQL(val, params));
             } else {
                 params.push(val);
                 sql = sql.replace('$', '?');
@@ -345,22 +350,7 @@ export class Expression {
 }
 
 
-type SelectOptions = 'STRAIGHT_JOIN' | 'SQL_SMALL_RESULT' | 'SQL_BIG_RESULT' | 'SQL_BUFFER_RESULT' | 'SQL_CACHE' | 'SQL_NO_CACHE' | 'SQL_CALC_FOUND_ROWS' | 'HIGH_PRIORITY' | 'DISTINCT' | 'DISTINCTROW' | 'ALL';
-type InsertIntoFlags = 'LOW_PRIORITY' | 'HIGH_PRIORITY' | 'IGNORE';
-type UpdateFlags = 'LOW_PRIORITY' | 'IGNORE';
 
-export interface SelectParams {
-    table?:Expression;
-    where?:Expression;
-    having?:Expression;
-    group?:Expression[] | Expression;
-    order?:Expression[] | Expression;
-    limit?:number;
-    offset?:number;
-    attributes?:Expression[] | Expression;
-    selectOptions?:SelectOptions[];
-    lock?:'X' | 'S';
-}
 
 export function wexpr() {
     return new EmptyExpression();
@@ -461,7 +451,7 @@ export class QueryBuilder extends Expression {
     }
 
     select(attributes:RawOrExpression[] | Expression, directives?:RawOrExpression[] | RawOrExpression) {
-        return new Expression(ExpressionTypes.SELECT, attributes, directives);
+        return new Expression(ExpressionTypes.SELECT, attributes || new Value('*'), directives);
     }
 
     update(value:RawOrExpression, flags?:RawOrExpression[] | RawOrExpression) {
@@ -475,8 +465,30 @@ export class QueryBuilder extends Expression {
     replace(value:Expression) {
         return new Expression(ExpressionTypes.REPLACE, value);
     }
+
+    delete(value:RawOrExpression, flags?:RawOrExpression[] | RawOrExpression) {
+        return new Expression(ExpressionTypes.DELETE, value, flags);
+    }
 }
 
+
+type SelectOptions = 'STRAIGHT_JOIN' | 'SQL_SMALL_RESULT' | 'SQL_BIG_RESULT' | 'SQL_BUFFER_RESULT' | 'SQL_CACHE' | 'SQL_NO_CACHE' | 'SQL_CALC_FOUND_ROWS' | 'HIGH_PRIORITY' | 'DISTINCT' | 'DISTINCTROW' | 'ALL';
+type InsertIntoFlags = 'LOW_PRIORITY' | 'HIGH_PRIORITY' | 'IGNORE';
+type UpdateFlags = 'LOW_PRIORITY' | 'IGNORE';
+type DeleteFlags = 'LOW_PRIORITY' | 'IGNORE' | 'QUICK';
+
+export interface SelectParams {
+    table?:Expression;
+    where?:Expression;
+    having?:Expression;
+    group?:Expression[] | Expression;
+    order?:Expression[] | Expression;
+    limit?:number;
+    offset?:number;
+    attributes?:Expression[] | Expression;
+    selectOptions?:SelectOptions[];
+    lock?:'X' | 'S';
+}
 
 export function selectQueryGenerator(params:SelectParams, values:QueryValues) {
     let query = new QueryBuilder().select(params.attributes, params.selectOptions).from(params.table);
@@ -507,7 +519,7 @@ export function selectQueryGenerator(params:SelectParams, values:QueryValues) {
 
 export interface UpdateParams {
     flags?:UpdateFlags[] | UpdateFlags;
-    table:RawOrExpression;
+    table?:RawOrExpression;
     partition?:RawOrExpression[] | RawOrExpression;
     set?:Expression[] | Expression;
     value?:{};
@@ -545,9 +557,9 @@ export function updateSql(params:UpdateParams, values:QueryValues) {
 }
 
 
-interface InsertParams {
+export interface InsertParams {
     flags?:InsertIntoFlags;
-    table:RawOrExpression;
+    table?:RawOrExpression;
     partition?:RawOrExpression[] | RawOrExpression;
     cols?:Expression[];
     values?:RawOrExpression[][];
@@ -586,3 +598,29 @@ export function insertSql(params:InsertParams, values:QueryValues) {
     return toSQL(query, values);
 }
 
+export interface DeleteParams {
+    flags?:DeleteFlags;
+    table:RawOrExpression;
+    partition?:RawOrExpression[] | RawOrExpression;
+    where?: Expression;
+    order?: Expression;
+    limit?: Expression;
+}
+
+export function deleteSql(params:DeleteParams, values:QueryValues) {
+    let query = new QueryBuilder().delete(params.table, params.flags)
+    if (params.partition) {
+        query = query.partition(params.partition);
+    }
+    if (params.where) {
+        query = query.where(params.where);
+    }
+    if (params.order) {
+        query = query.orderBy(params.order);
+    }
+    if (params.limit) {
+        query = query.limit(params.limit);
+    }
+    return toSQL(query, values);
+}
+// todo: REPLACE

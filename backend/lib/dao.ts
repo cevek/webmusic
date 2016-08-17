@@ -1,7 +1,8 @@
 "use strict";
 import {DB} from "./db";
 import {
-    Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table, updateSql
+    Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table, updateSql, deleteSql,
+    UpdateParams, DeleteParams
 } from "./query";
 import {Transaction} from "./Transaction";
 import {inject} from "./injector";
@@ -47,6 +48,40 @@ export class DAO<T extends BaseType> {
             value: item,
             where: ctor.id.equal(id)
         }, values), values, trx) as ResultSetHeader;
+        return result.affectedRows;
+    }
+
+    async updateCustom(params: UpdateParams, trx?:Transaction) {
+        const values:QueryValues = [];
+        const ctor = this.constructor as DAOC;
+        if (!params.table) {
+            params.table = ctor.table;
+        }
+        const result = await this.db.query(updateSql(params, values), values, trx) as ResultSetHeader;
+        return result.affectedRows;
+    }
+
+    async remove(id: number, trx?:Transaction) {
+        return this.removeAll([id], trx);
+    }
+
+    async removeAll(ids: number[], trx?:Transaction) {
+        const values:QueryValues = [];
+        const ctor = this.constructor as DAOC;
+        const result = await this.db.query(deleteSql({
+            table: ctor.table,
+            where: ctor.id.in(ids)
+        }, values), values, trx) as ResultSetHeader;
+        return result.affectedRows;
+    }
+
+    async removeCustom(params: DeleteParams, trx?:Transaction) {
+        const values:QueryValues = [];
+        const ctor = this.constructor as DAOC;
+        if (!params.table) {
+            params.table = ctor.table;
+        }
+        const result = await this.db.query(deleteSql(params, values), values, trx) as ResultSetHeader;
         return result.affectedRows;
     }
 
