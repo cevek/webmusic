@@ -14,25 +14,42 @@
 </head>
 <body>
 
+<script type="text/javascript" src="idb-keyval.js"></script>
+
 <script type="text/javascript">
     const audio = new Audio();
     audio.controls = true;
 
+    for (var i = 0; i < 10; i++) {
+        idbKeyval.set('huge' + Math.random().toString(), new ArrayBuffer(10000000)).then(function (data) {
+            console.log('saved', data);
+        }).catch(function (err) {
+            console.error(err);
+        });
+    }
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '1.mp4', true);
-    xhr.responseType = 'arraybuffer';
-    xhr.onload = function (e) {
-        if (this.status == 200) {
-            const blob = new Blob([this.response], {type: 'audio/mp4'});
+    idbKeyval.get('boom').then(function (data) {
+        if (data) {
+            var blob = new Blob([data], {type: 'audio/mp4'});
             var blobURL = window.URL.createObjectURL(blob);
+            console.log(blobURL);
+
             document.body.appendChild(audio);
             audio.src = blobURL;
             console.log(blobURL);
-
+        } else {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '1.mp4', true);
+            xhr.responseType = 'arraybuffer';
+            xhr.onload = function (e) {
+                if (this.status == 200) {
+                    idbKeyval.set('boom', this.response);
+                }
+            };
+            xhr.send();
         }
-    };
-    xhr.send();
+    })
+
 </script>
 
 </body>
