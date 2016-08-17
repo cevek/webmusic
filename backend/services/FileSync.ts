@@ -4,6 +4,7 @@ import {readdirSync} from "fs";
 import {config} from "../config";
 import {unlinkSync} from "fs";
 import {Logger} from "../lib/Logger";
+import {SQLFunctions} from "../lib/SQLFunctions";
 
 export class FileSync {
     logger = new Logger(this.constructor.name);
@@ -11,9 +12,11 @@ export class FileSync {
 
     async sync() {
         const tracks = await this.track.findAll({
+            attributes: [Track.id, Track.filename],
             where: Track.error.equal(0),
             order: Track.filename
-        });
+        }) as {id:number, filename:string}[];
+
         const tracksMap = new Map(tracks.map(t => [t.filename, t]) as [string, ITrack][]);
         const files = readdirSync(config.musicFilesDir).filter(f => f !== '.' && f !== '..');
         const filesMap = new Map(files.map(file => [file, file]) as [string, string][]);
@@ -33,7 +36,7 @@ export class FileSync {
 
     async setErrorToAllNonStoppedTracks() {
         const affected = await this.track.updateCustom({
-            set: Track.error.assign(1), //todo: , info: Track.info.plus('\nSet error after restart')
+            set: [Track.error.assign(1), Track.info.assign(SQLFunctions.CONCAT(Track.info, '\nSet error after restart'))],
             where: Track.duration.equal(0).and(Track.error.equal(0))
         })
         if (affected > 0) {
@@ -45,19 +48,20 @@ export class FileSync {
         const tracks = await this.track.findAll({
             attributes: [Track.id, Track.size],
             order: Track.createdAt.desc()
-        });
-        let tracksToRemove:ITrack[] = [];
+        }) as {id:number; size:number}[];
+
+        let tracksToRemove: number[] = [];
         let currSize = 0;
         for (let i = 0; i < tracks.length; i++) {
             const track = tracks[i];
             currSize += track.size;
             if (currSize > config.maxCapacity) {
-                tracksToRemove = tracks.slice(i);
+                tracksToRemove = tracks.slice(i).map(t => t.id);
                 break;
             }
         }
         if (tracksToRemove.length) {
-            await this.track.removeAll(tracksToRemove.map(t => t.id));
+            await this.track.removeAll(tracksToRemove);
             this.logger.log('removed old tracks', tracksToRemove.length)
         }
         await this.sync();
