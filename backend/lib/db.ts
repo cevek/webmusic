@@ -3,12 +3,14 @@ import {Transaction} from "./Transaction";
 import {QueryValues} from "./query";
 import {inject} from "./injector";
 import {Connection} from "./Connection";
+import {Logger} from "./Logger";
 
 export class DB {
+    protected logger = new Logger(this.constructor.name);
     protected connection = inject(Connection);
 
     async query<T>(query:string, values?:QueryValues, trx?:Transaction):Promise<T> {
-        // console.log(query, values);
+        //this.logger.log('query', query, values);
 
         var connection = trx ? trx.connection : await this.getConnection();
         var res = await (new Promise<T>((resolve, reject)=> {
