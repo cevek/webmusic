@@ -1,16 +1,22 @@
-import {StationInfo} from "./models/StationInfo";
+import * as bluebird from 'bluebird';
+declare var Promise: typeof bluebird;
+global.Promise = bluebird;
+
 import {Recorder} from "./services/Recorder";
 import {Station} from "./models/Station";
 import {DBConfig} from "./lib/DBConfig";
 import {bindInjection, inject} from "./lib/injector";
 import {config} from "./config";
 import {Track} from "./models/Track";
-import {Fun} from "./lib/query";
 import {Logger} from "./lib/Logger";
 import {FileSync} from "./services/FileSync";
 import {sleep} from "./lib/Utils";
+import {SQLFunctions} from "./lib/SQLFunctions";
+
 require('source-map-support').install();
 Error.stackTraceLimit = 30;
+bluebird.longStackTraces();
+
 
 bindInjection(DBConfig, config.db);
 
@@ -29,8 +35,8 @@ async function runTasks() {
         attributes: Station.table.allFields(),
         table: Station.table.leftJoin(Track.table, Station.id.equal(Track.stationId)),
         group: Station.id.asc(),
-        where: new Fun('DATEDIFF', [Track.createdAt, new Date()]).greatOrEqualThan(minDiffDays),
-        order: new Fun('max', [Track.createdAt]).asc(),
+        where: SQLFunctions.DATEDIFF(Track.createdAt, new Date()).greatOrEqualThan(minDiffDays),
+        order: SQLFunctions.MAX(Track.createdAt).asc(),
         limit: count
     });
     logger.log('Run tasks', results.length);
