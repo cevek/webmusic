@@ -12,6 +12,7 @@
   "dependencies": {
     "mysql2": "^1.0.0-rc.10",
     "source-map-support": "^0.4.2",
-    "sourcemap": "^0.1.0"
+    "sourcemap": "^0.1.0",
+    "tape": "^4.6.0"
   }
 }
