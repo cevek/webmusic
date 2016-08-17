@@ -90,6 +90,7 @@ export const ExpressionTypes = {
 
 type Raw = number | string | Date;
 type RawOrExpression = Raw | Expression;
+type RawOrExpressionMulti = RawOrExpression[] | RawOrExpression;
 
 export class Expression {
     constructor(private type:{sql:string; count:number}, private val1?:any, private val2?:any, private val3?:any) {
@@ -338,18 +339,11 @@ export class Expression {
         }
         for (var i = 0; i < paramsCount; i++) {
             const val = i == 0 ? this.val1 : (i == 1 ? this.val2 : this.val3);
-            if (val instanceof Expression) {
-                sql = sql.replace('$', toSQL(val, params));
-            } else {
-                params.push(val);
-                sql = sql.replace('$', '?');
-            }
+            sql = sql.replace('$', toSQL(val, params));
         }
         return sql;
     }
 }
-
-
 
 
 export function wexpr() {
@@ -409,11 +403,14 @@ export class Table extends Value {
     }
 }
 
+export function funBuilder(name:string) {
+    return (...args: RawOrExpressionMulti[]) => new Fun(name, args);
+}
+
 export class Fun extends Expression {
-    constructor(public name:string, public args:RawOrExpression[]) {
+    constructor(public name:string, public args:RawOrExpressionMulti[]) {
         super(ExpressionTypes.EMPTY);
     }
-
 }
 
 export class Attribute extends Value {
@@ -519,7 +516,7 @@ export function selectQueryGenerator(params:SelectParams, values:QueryValues) {
 
 export interface UpdateParams {
     flags?:UpdateFlags[] | UpdateFlags;
-    table?:RawOrExpression;
+    table?:RawOrExpression; //todo: multiple table
     partition?:RawOrExpression[] | RawOrExpression;
     set?:Expression[] | Expression;
     value?:{};
@@ -602,9 +599,9 @@ export interface DeleteParams {
     flags?:DeleteFlags;
     table:RawOrExpression;
     partition?:RawOrExpression[] | RawOrExpression;
-    where?: Expression;
-    order?: Expression;
-    limit?: Expression;
+    where?:Expression;
+    order?:Expression;
+    limit?:Expression;
 }
 
 export function deleteSql(params:DeleteParams, values:QueryValues) {
