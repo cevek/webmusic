@@ -1,7 +1,7 @@
 import {inspections} from "./expections";
 import {bindInjection, inject} from "../../injector";
 import {DBConfig} from "../../DBConfig";
-import {config} from "../config";
+import {config} from "../test-config";
 import {Doc} from "../models/Doc";
 import {Chapter} from "../models/Chapter";
 import {Author} from "../models/Author";
