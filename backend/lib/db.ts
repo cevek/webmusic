@@ -10,9 +10,9 @@ export class DB {
     protected connection = inject(Connection);
 
     async query<T>(query:string, values?:QueryValues, trx?:Transaction):Promise<T> {
-        // this.logger.log('query', query, values);
 
         var connection = trx ? trx.connection : await this.getConnection();
+        // this.logger.log('query', connection.threadId, query, values);
         var res = await (new Promise<T>((resolve, reject)=> {
             if (query) {
                 var q = connection.query(query, values, (err:Error, rows:T) => {
@@ -26,6 +26,8 @@ export class DB {
                     }
                     resolve(rows);
                 });
+                // console.log(q.sql);
+
             } else {
                 resolve(null);
             }
@@ -44,16 +46,19 @@ export class DB {
         return (await this.query<T[]>(query, values, trx)) || [];
     }
 
-    async transaction(fn:(transaction:Transaction)=>Promise<any>) {
+    async transaction<T>(fn:(transaction:Transaction)=>Promise<T>): Promise<T> {
         var transaction = await this.beginTransaction();
+        let result: T;
         try {
-            await fn(transaction);
+            result = await fn(transaction);
             await transaction.commit();
         }
         catch (e) {
             await transaction.rollback();
             throw e;
         }
+        transaction.connection.release();
+        return result;
     }
 
     async beginTransaction():Promise<Transaction> {
