@@ -8,4 +8,5 @@ export const config:Config = {
     musicFilesDir: '/Users/cody/Downloads/webmusic/',
     maxCapacity: 1024 * 1024 * 1024,
     limitConcurentProcess: 10,
+    trackDuration: 16,
 };

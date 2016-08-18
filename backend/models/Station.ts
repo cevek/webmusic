@@ -21,6 +21,8 @@ export interface StationEntity {
 
     owner:number;
     foreignId:string;
+
+    recording: boolean;
 }
 
 export class Station extends DAO<StationEntity> {
@@ -35,6 +37,8 @@ export class Station extends DAO<StationEntity> {
 
     static owner = Station.field('owner');
     static foreignId = Station.field('foreignId');
+
+    static recording = Station.field('recording');
 
     static get rel() {
         return {

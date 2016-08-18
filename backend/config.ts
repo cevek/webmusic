@@ -7,4 +7,5 @@ export class Config {
     musicFilesDir:string;
     maxCapacity:number;
     limitConcurentProcess:number;
+    trackDuration: number;
 }

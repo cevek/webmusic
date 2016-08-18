@@ -5,10 +5,12 @@ import {unlinkSync} from "fs";
 import {Logger} from "../lib/Logger";
 import {SQLFunctions} from "../lib/SQLFunctions";
 import {Config} from "../config";
+import {Station} from "../models/Station";
 
 export class FileSync {
     logger = new Logger(this.constructor.name);
     track = inject(Track);
+    station = inject(Station);
     config = inject(Config);
 
     async sync() {
@@ -35,10 +37,20 @@ export class FileSync {
         }
     }
 
+    async resetRecordingStations() {
+        const affected = await this.station.updateCustom({
+            set: Station.recording.assign(false),
+            where: Station.recording.equal(true)
+        })
+        if (affected > 0) {
+            this.logger.log('reset recording stations after restart', affected);
+        }
+    }
+
     async setErrorToAllNonStoppedTracks() {
         const affected = await this.track.updateCustom({
             set: [Track.error.assign(1), Track.info.assign(SQLFunctions.CONCAT(Track.info, '\nSet error after restart'))],
-            where: Track.duration.equal(0).and(Track.error.equal(0))
+            where: Track.duration.lessThan(this.config.trackDuration).and(Track.error.equal(0))
         })
         if (affected > 0) {
             this.logger.log('set error to unstopped tracks', affected);

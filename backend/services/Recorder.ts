@@ -1,5 +1,5 @@
 import {spawn, ChildProcess} from "child_process";
-import {StationEntity} from "../models/Station";
+import {StationEntity, Station} from "../models/Station";
 import {Track} from "../models/Track";
 import {inject} from "../lib/injector";
 import {Logger} from "../lib/Logger";
@@ -14,34 +14,35 @@ interface RecordResult {
     error:boolean;
     size:number;
 }
+let id = 0;
 export class Recorder {
+    id = ++id;
     ffmpeg:ChildProcess;
     timeout:NodeJS.Timer;
     globTimeout:NodeJS.Timer;
     station:StationEntity;
-    duration:number;
     filename:string;
     fullFilename:string;
     config = inject(Config);
+    stationDAO = inject(Station);
+    track = inject(Track);
 
     logger = inject(Logger);
 
     maxPauseBreak = 10000;
     maxTimeout:number;
 
-    constructor(station:StationEntity, duration:number) {
-        this.maxTimeout = duration * 1500;
+    constructor(station:StationEntity) {
+        this.maxTimeout = this.config.trackDuration * 1500 + 30000;
         this.station = station;
-        this.duration = duration;
         this.filename = `${radioServices.get(station.owner).name}_${station.slug}_${(Date.now() / 1000 | 0)}.mp4`;
         this.fullFilename = this.config.musicFilesDir + this.filename;
     }
 
     async start() {
-        this.logger.log('Recording', this.station.name);
+        this.logger.log('Recording', this.id, this.station.slug);
         try {
-            const trackDAO = inject(Track);
-            const trackId = await trackDAO.create({
+            const trackId = await this.track.create({
                 id: null,
                 stationId: this.station.id,
                 lastUsedAt: null,
@@ -56,7 +57,8 @@ export class Recorder {
             });
 
             const result = await this.record();
-            await trackDAO.update({
+
+            await this.track.update({
                 id: void 0,
                 stationId: void 0,
                 lastUsedAt: void 0,
@@ -70,9 +72,16 @@ export class Recorder {
                 size: result.size
             }, trackId);
 
+            await this.stationDAO.updateCustom({
+                set: Station.recording.assign(false),
+                where: Station.id.equal(this.station.id)
+            })
+
         } catch (e) {
-            console.error(e.stack);
+            this.logger.error(e);
         }
+        this.logger.log('Record done', this.id, this.station.slug);
+
     }
 
     private parseLastTime(s:string) {
@@ -88,52 +97,66 @@ export class Recorder {
         return 0;
     }
 
+    private getFileSize() {
+        try {
+            return statSync(this.fullFilename).size;
+        } catch (e) {
+
+        }
+        return 0;
+    }
+
     private record() {
         return new Promise<RecordResult>((resolve) => {
+            let error = false;
             let info = '';
             let breaks = 0;
             const url = this.station.url;
             const options = {};
             const args:string[] = [];
-            args.push('-i', `${url}`, '-y', '-t', this.duration.toString()/*, '-bsf:a', 'aac_adtstoasc'*/);
+            args.push('-i', `${url}`, '-y', '-t', this.config.trackDuration.toString()/*, '-bsf:a', 'aac_adtstoasc'*/);
             if (this.station.cover) {
                 // args.push('-i', `"${station.cover}"`, '-c copy -map 1');
             }
             args.push('-c:a', 'libfdk_aac', '-profile:a', 'aac_he_v2', '-b:a', '32k');
             args.push(this.fullFilename);
 
-            this.logger.log('Start process', 'ffmpeg ' + args.join(' '));
+            // this.logger.log('Start process', 'ffmpeg ' + args.join(' '));
 
             this.ffmpeg = spawn(`ffmpeg`, args, options);
 
             const abort = (reason:string)=> {
-                clearTimeout(this.timeout);
-                clearTimeout(this.globTimeout);
-                this.ffmpeg.kill('SIGKILL');
-                return resolve({
-                    info: info + '\nAborted: ' + reason,
-                    breaks,
-                    duration: this.parseLastTime(info),
-                    size: statSync(this.fullFilename).size,
-                    error: true
-                });
+                try {
+                    this.logger.log('abort', reason, this.id, this.station.slug);
+                    this.ffmpeg.kill('SIGKILL');
+                    error = true;
+                    info += + '\nAborted: ' + reason;
+                } catch (e) {
+                    this.logger.error(e);
+                }
             };
-            let timeout:NodeJS.Timer;
 
             this.ffmpeg.stderr.on('data', (data:Buffer) => {
+                // this.logger.log('ondata', this.station.slug);
                 info += data.toString();
-                clearTimeout(timeout);
-                timeout = setTimeout(()=>abort(`timeout ${this.maxPauseBreak}ms`), this.maxPauseBreak);
+                clearTimeout(this.timeout);
+                this.timeout = setTimeout(()=>abort(`timeout ${this.maxPauseBreak}ms`), this.maxPauseBreak);
             });
             this.ffmpeg.stderr.on('end', () => {
-                const duration = this.parseLastTime(info);
-                return resolve({
-                    info,
-                    breaks,
-                    duration,
-                    size: statSync(this.fullFilename).size,
-                    error: duration == 0
-                });
+                try {
+                    const duration = this.parseLastTime(info);
+                    clearTimeout(this.timeout);
+                    clearTimeout(this.globTimeout);
+                    resolve({
+                        info,
+                        breaks,
+                        duration,
+                        size: this.getFileSize(),
+                        error: error || duration < this.config.trackDuration
+                    });
+                } catch (e) {
+                    this.logger.error(e);
+                }
             });
             this.globTimeout = setTimeout(() => {
                 abort(`Glob timeout: ${this.maxTimeout}`);
