@@ -87,9 +87,12 @@ export const ExpressionTypes = {
 
     FOR_UPDATE: {sql: '$ FOR UPDATE', count: 1},
     LOCK_IN_SHARE_MODE: {sql: '$ LOCK IN SHARE MODE', count: 1},
+
+
+    BRACKETS: {sql: '($)', count: 1},
 };
 
-type Raw = number | string | Date;
+type Raw = number | string | boolean | Date;
 type RawOrExpression = Raw | Expression;
 type RawOrExpressionMulti = RawOrExpression[] | RawOrExpression;
 
@@ -178,8 +181,8 @@ export class Expression {
         return new Expression(ExpressionTypes.NOT_LIKE, this, value1);
     }
 
-    as(name:string) {
-        return new Expression(ExpressionTypes.EQUAL, this, new Value(escapeValue(name)));
+    as(name:RawOrExpression) {
+        return new Expression(ExpressionTypes.AS, this, name);
     }
 
     plus(value:RawOrExpression) {
@@ -310,6 +313,10 @@ export class Expression {
         return new Expression(ExpressionTypes.DEFAULT, this);
     }
 
+    brackets() {
+        return new Expression(ExpressionTypes.BRACKETS, this);
+    }
+
     toSQL(params:any[]):string {
         let sql = this.type.sql;
         let paramsCount = this.type.count;
@@ -428,6 +435,9 @@ export class Attribute extends Value {
     constructor(public table:Table, public name:string) {
         super(table ? `${table.toSQL(null)}.${escapeValue(name)}` : escapeValue(name));
     }
+    onlyName(){
+        return new Value(this.name);
+    }
 }
 
 
@@ -458,7 +468,7 @@ export class QueryBuilder extends Expression {
         super(ExpressionTypes.EMPTY);
     }
 
-    select(attributes:RawOrExpression[] | Expression, directives?:RawOrExpression[] | RawOrExpression) {
+    select(attributes:RawOrExpressionMulti, directives?:RawOrExpression[] | RawOrExpression) {
         return new Expression(ExpressionTypes.SELECT, attributes || new Value('*'), directives);
     }
 
