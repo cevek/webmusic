@@ -26,7 +26,7 @@ export class TaskRunner {
             const results = await this.db.transaction(async(trx) => {
                 let query = new QueryBuilder().select(null).from(
                     new QueryBuilder()
-                        .select([Station.table.allFields(), SQLFunctions.MAX(Track.createdAt).as(Track.createdAt.onlyName()), Track.error])
+                        .select([Station.table.allFields(), Station.id, SQLFunctions.MAX(Track.createdAt).as(Track.createdAt.onlyName()), Track.error])
                         .from(Station.table.leftJoin(Track.table,
                             Station.id.equal(Track.stationId)))
                         .groupBy(Station.id)
@@ -38,7 +38,7 @@ export class TaskRunner {
                     .orderBy(Track.createdAt.onlyName().asc())
                     .limit(limit);
 
-                const result = await this.station.query(query, null, trx) as (StationEntity & {createdAt:Date, error:boolean})[];
+                const result = await this.station.query(query, null, trx) as (StationEntity)[];
 
                 await this.station.updateCustom({
                     set: Station.recording.assign(true),
