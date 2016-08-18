@@ -26,7 +26,7 @@ export class TaskRunner {
             const results = await this.db.transaction(async(trx) => {
                 let query = new QueryBuilder().select(null).from(
                     new QueryBuilder()
-                        .select([Station.table.allFields(), Station.id, SQLFunctions.MAX(Track.createdAt).as(Track.createdAt.onlyName()), Track.error])
+                        .select([Station.table.allFields(), Station.id.as('foo'), SQLFunctions.MAX(Track.createdAt).as(Track.createdAt.onlyName())])
                         .from(Station.table.leftJoin(Track.table,
                             Station.id.equal(Track.stationId)))
                         .groupBy(Station.id)

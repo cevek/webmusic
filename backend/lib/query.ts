@@ -182,7 +182,7 @@ export class Expression {
     }
 
     as(name:RawOrExpression) {
-        return new Expression(ExpressionTypes.AS, this, name);
+        return new Expression(ExpressionTypes.AS, this, typeof name == 'string' ? new Value(name) as any : name);
     }
 
     plus(value:RawOrExpression) {
