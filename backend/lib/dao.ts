@@ -2,7 +2,7 @@
 import {DB} from "./db";
 import {
     Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table, updateSql, deleteSql,
-    UpdateParams, DeleteParams
+    UpdateParams, DeleteParams, Expression
 } from "./query";
 import {Transaction} from "./Transaction";
 import {inject} from "./injector";
@@ -51,7 +51,7 @@ export class DAO<T extends BaseType> {
         return result.affectedRows;
     }
 
-    async updateCustom(params: UpdateParams, trx?:Transaction) {
+    async updateCustom(params:UpdateParams, trx?:Transaction) {
         const values:QueryValues = [];
         const ctor = this.constructor as DAOC;
         if (!params.table) {
@@ -61,11 +61,11 @@ export class DAO<T extends BaseType> {
         return result.affectedRows;
     }
 
-    async remove(id: number, trx?:Transaction) {
+    async remove(id:number, trx?:Transaction) {
         return this.removeAll([id], trx);
     }
 
-    async removeAll(ids: number[], trx?:Transaction) {
+    async removeAll(ids:number[], trx?:Transaction) {
         const values:QueryValues = [];
         const ctor = this.constructor as DAOC;
         const result = await this.db.query(deleteSql({
@@ -75,7 +75,7 @@ export class DAO<T extends BaseType> {
         return result.affectedRows;
     }
 
-    async removeCustom(params: DeleteParams, trx?:Transaction) {
+    async removeCustom(params:DeleteParams, trx?:Transaction) {
         const values:QueryValues = [];
         const ctor = this.constructor as DAOC;
         if (!params.table) {
@@ -95,40 +95,49 @@ export class DAO<T extends BaseType> {
         return result.insertId;
     }
 
-    async findById(id:number, params:Params = {}) {
+    async findById(id:number, params:Params = {}, trx?:Transaction) {
         params.table = (this.constructor as DAOC).table;
         if (!params.where) {
             params.where = wexpr();
         }
         params.where.and(this.id.equal(id));
-        return this.findOne(params);
+        return this.findOne(params, trx);
     }
 
-    async findAll(params:Params = {}) {
-        const values:string[] = [];
+    async findAll(params:Params = {}, trx?:Transaction) {
+        const values:QueryValues = [];
         if (!params.table) {
             params.table = (this.constructor as DAOC).table;
         }
         const sql = selectQueryGenerator(params, values);
-        const result = await this.db.queryAll<T>(sql, values, params && params.trx);
+        const result = await this.db.queryAll<T>(sql, values, trx);
         if (params.include) {
-            await this.includeRelations(params.include, result);
+            await this.includeRelations(params.include, result, trx);
         }
         return result;
     }
 
-    async findOne(params?:Params) {
-        return (await this.findAll(params)).pop();
+    async findOne(params?:Params, trx?:Transaction) {
+        return (await this.findAll(params, trx)).pop();
     }
 
-    private async includeRelations(includes:Include[], result:T[]) {
+    async query(query:Expression, include?:Include[], trx?:Transaction) {
+        const values:QueryValues = [];
+        const result = await this.db.queryAll<T>(query.toSQL(values), values, trx);
+        if (include) {
+            await this.includeRelations(include, result, trx);
+        }
+        return result;
+    }
+
+    private async includeRelations(includes:Include[], result:T[], trx:Transaction) {
         for (let i = 0; i < includes.length; i++) {
             const include = includes[i];
-            await this.processRelation(include.relation, include.params, result, null, include.relation.property);
+            await this.processRelation(trx, include.relation, include.params, result, null, include.relation.property);
         }
     }
 
-    protected async processRelation(relation:Relation, params:Params = {}, result:BaseType[], parentResult:BaseType[], property:string, parentSubItems?:BaseType[], parentAggregateFieldName?:string, parentFK?:string) {
+    protected async processRelation(trx:Transaction, relation:Relation, params:Params = {}, result:BaseType[], parentResult:BaseType[], property:string, parentSubItems?:BaseType[], parentAggregateFieldName?:string, parentFK?:string) {
         const isBelongs = relation.type == RelationType.BELONGS_TO;
         let modelDAO:DAOX;
 
@@ -170,11 +179,11 @@ export class DAO<T extends BaseType> {
             localParams.where = localParams.where.and(cond);
         }
 
-        const subResult = await modelDAO.findAll(localParams);
+        const subResult = await modelDAO.findAll(localParams, trx);
 
         if (relation.through) {
             const modelDAO = inject(relation.through.model);
-            await modelDAO.processRelation(relation.through, params, subResult, result, property, subResult, aggregateFieldName, foreignKeyName);
+            await modelDAO.processRelation(trx, relation.through, params, subResult, result, property, subResult, aggregateFieldName, foreignKeyName);
             return;
         }
 
