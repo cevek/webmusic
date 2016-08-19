@@ -620,7 +620,7 @@ export function insertSql(params:InsertParams, values:QueryValues) {
 
 export interface DeleteParams {
     flags?:DeleteFlags;
-    table:RawOrExpression;
+    table?:RawOrExpression;
     partition?:RawOrExpression[] | RawOrExpression;
     where?:Expression;
     order?:Expression;

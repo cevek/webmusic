@@ -24,7 +24,7 @@ async function start() {
     try {
         const fileSync = inject(FileSync);
         await fileSync.resetRecordingStations();
-        await fileSync.setErrorToAllNonStoppedTracks();
+        await fileSync.removeNonStoppedTracks();
         await fileSync.removeOldTracks();
 
         const taskRunner = inject(TaskRunner);

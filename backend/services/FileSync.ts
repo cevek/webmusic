@@ -47,13 +47,12 @@ export class FileSync {
         }
     }
 
-    async setErrorToAllNonStoppedTracks() {
-        const affected = await this.track.updateCustom({
-            set: [Track.error.assign(1), Track.info.assign(SQLFunctions.CONCAT(Track.info, '\nSet error after restart'))],
-            where: Track.duration.lessThan(this.config.trackDuration).and(Track.error.equal(0))
+    async removeNonStoppedTracks() {
+        const affected = await this.track.removeCustom({
+            where: Track.endedAt.isNull()
         })
         if (affected > 0) {
-            this.logger.log('set error to unstopped tracks', affected);
+            this.logger.log('remove non stopped tracks', affected);
         }
     }
 
