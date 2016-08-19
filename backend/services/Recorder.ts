@@ -85,14 +85,21 @@ export class Recorder {
     }
 
     private parseLastTime(s:string) {
-        const reg = /(\d+):(\d+):(\d+)\.(\d+)/g;
+        const regFFMPEG = /time=(\d+):(\d+):(\d+)\.(\d{2})/g;
         let res:RegExpMatchArray;
         let lastRes:RegExpMatchArray;
-        while (res = reg.exec(s)) {
+        while (res = regFFMPEG.exec(s)) {
             lastRes = res;
         }
         if (lastRes) {
-            return +lastRes[1] * 3600 + +lastRes[2] * 60 + +lastRes[3]
+            return Math.round(+lastRes[1] * 3600 + +lastRes[2] * 60 + +lastRes[3] + +lastRes[4] / 100);
+        }
+        const regAvconv = /time=(\d+)\.(\d{2})/g;
+        while (res = regAvconv.exec(s)) {
+            lastRes = res;
+        }
+        if (lastRes) {
+            return Math.round(+lastRes[1] + +lastRes[2] / 100);
         }
         return 0;
     }
