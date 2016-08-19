@@ -1,17 +1,15 @@
-import {QueryValues} from "../query";
 import {SQL} from "./Base";
 
 
 var sql = new SQL();
 var table = sql.table('a');
 var table2 = sql.table('b');
-var id = sql.attr('id');
-var title = sql.attr('title');
+var id = sql.attr(table, 'id');
+var title = sql.attr(table, 'title');
 
-
-
-
-
+const foo = sql.identifier('foo');
+const y = sql.identifier('y');
+const tbl = sql.identifier('tbl');
 
 sql
     .select()
@@ -19,15 +17,13 @@ sql
         '*',
         table.all(),
         id,
-        id.as('foo'),
-        sql.fun.MAX('y', id)
+        id.as(foo),
+        sql.fun.MAX(y, id)
     ])
     .directive.ALL()
     .directive.DISTINCT()
-    .from(table.as('tbl')
-        .leftJoin(table2).on(
-            id.equal(id).and(id.greatThan(10))
-        )
+    .from(table.as(tbl)
+        .leftJoin(table2, id.equal(id).and(id.greatThan(10)))
     )
     .where(
         id.greatThan(10).and(title.like("foo"))

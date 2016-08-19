@@ -1,5 +1,5 @@
 import {Base, Procedure, Identifier, toSQL} from "./Base";
-import {Expression} from "./Expression";
+import {Expression, LeftExpression, ExpressionTypes} from "./Expression";
 import {DataSource} from "./DataSource";
 import {QueryValues} from "../query";
 
@@ -117,7 +117,7 @@ export class SelectQuery extends Base {
     }
 
     toExpression() {
-        return new Expression(this);
+        return new LeftExpression(ExpressionTypes.BRACKETS, this as Object as Expression);
     }
 
     toSQL(values: QueryValues) {

@@ -1,6 +1,7 @@
 import {QueryValues} from "../query";
 import {SelectQuery} from "./SelectQuery";
 import {Expression} from "./Expression";
+import {Table, Field} from "./DataSource";
 export class SQL {
     select() {
         return new SelectQuery();
@@ -23,17 +24,22 @@ export class SQL {
     }
 
     table(name: string) {
+        return new Table(new Identifier(name));
+    }
+
+    identifier(name: string) {
         return new Identifier(name);
     }
 
-    attr(name: string) {
-        return new Identifier(name);
+    attr(table: Table, name: string) {
+        return new Field(table, name);
     }
 
     fun: any;
 }
 
-export type RawValue = string | number | Date;
+type Raw = string | number | boolean | Date;
+export type RawValue = Raw | Raw[];
 
 export class Base {
     toSQL(values: QueryValues): string {
@@ -59,7 +65,7 @@ export class Procedure extends Base {
 export class Identifier extends Expression {
     private _as: Identifier = null;
 
-    constructor(private name: string) {
+    constructor(protected name: string) {
         super();
     }
 
