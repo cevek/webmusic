@@ -53,6 +53,9 @@ export class TaskRunner {
                 const station = results[i];
                 const recorder = new Recorder(station);
 
+                if (this.runnedTasks >= this.config.limitConcurentProcess) {
+                    break;
+                }
                 this.runnedTasks++;
                 recorder.start().then(() => {
                     this.runnedTasks--;
