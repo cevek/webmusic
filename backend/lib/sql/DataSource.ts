@@ -1,77 +1,101 @@
-import {Base, Identifier, toSQL} from "./Base";
+import {Base, RawValue} from "./Base";
 import {Expression} from "./Expression";
+import {QueryValues} from "../query";
+import {toSql} from "./common";
+import {Identifier} from "./Identifier";
 
 
-export class DataSource extends Base {
-    private _partition: Identifier[] = null;
-    private _name: Identifier = null;
-
+export abstract class DataSource extends Base {
     constructor() {
         super();
     }
 
-    partition(expr: Identifier | Identifier[]) {
-        this._partition = expr instanceof Array ? expr : [expr];
+    join(table: DataSource) {
+        return new Join('INNER', this, table);
+    }
+
+    leftJoin(table: DataSource) {
+        return new Join('LEFT', this, table)
+    }
+
+    rightJoin(table: DataSource) {
+        return new Join('RIGHT', this, table);
+    }
+
+    outerJoin(table: DataSource) {
+        return new Join('OUTER', this, table);
+    }
+}
+
+
+export class Join extends DataSource {
+    private _on: Expression;
+
+    constructor(private joinType: string, private tableFrom: DataSource, private tableTo: DataSource) {
+        super();
+    }
+
+    on(expr: Expression) {
+        this._on = expr;
         return this;
     }
 
-    join(table: DataSource, on: Expression) {
-        return new Join('INNER', this, table, on);
-    }
-
-    leftJoin(table: DataSource, on: Expression) {
-        return new Join('LEFT', this, table, on)
-    }
-
-    rightJoin(table: DataSource, on: Expression) {
-        return new Join('RIGHT', this, table, on);
-    }
-
-    outerJoin(table: DataSource, on: Expression) {
-        return new Join('OUTER', this, table, on);
-    }
-
-    as(name: Identifier) {
-        this._name = name;
-        return this;
-    }
-
-    toSQL() {
-        //todo:
-        return ``;
+    toSQL(values: QueryValues) {
+        return `${toSql(this.tableFrom, null)} ${this.joinType} JOIN ${toSql(this.tableTo, values)}${this._on ? ` ON (${toSql(this._on, values)})` : ''}`;
     }
 }
 
 export class Table extends DataSource {
+    protected _as: Table = null;
+    private _partition: Identifier[] = null;
+
     constructor(private name: Identifier) {
         super();
     }
+
+    as(name: Table) {
+        const clone = new Table(this.name);
+        clone._as = name;
+        return clone;
+    }
+
+    partition(expr: Identifier | Identifier[]) {
+        const clone = new Table(this.name);
+        clone._partition = expr instanceof Array ? expr : [expr];
+        return clone;
+    }
+
 
     all() {
         return new Field(this, '*');
     }
 
-    toSQL() {
-        return toSQL(this.name, null);
+    field(name: string) {
+        return new Field(this, name);
+    }
+
+    toSQL(values: QueryValues): string {
+        let sql = toSql(this.name, values);
+        if (this._as) {
+            sql += ' AS ' + toSql(this._as, values);
+        }
+        if (this._partition && this._partition.length) {
+            sql += ' PARTITION ' + this._partition.map(part => toSql(part, values)).join(', ');
+        }
+        return sql;
     }
 }
 
-export class Join extends DataSource {
-    constructor(private joinType: string, private tableFrom: DataSource, private tableTo: DataSource, private on: Expression) {
+
+export class RawSQL extends Expression {
+    constructor(private sql: string, private replacements?: RawValue[]) {
         super();
     }
 
-    toSQL() {
-        return `${toSQL(this.tableFrom, null)} ${this.joinType} JOIN ${toSQL(this.tableFrom, null)} ON (${toSQL(this.on, null)})`;
-    }
-}
-
-export class RawSQL extends Base {
-    constructor(private sql: string) {
-        super();
-    }
-
-    toSQL() {
+    toSQL(values: QueryValues) {
+        if (this.replacements) {
+            values.push(...this.replacements);
+        }
         return this.sql;
     }
 }
@@ -82,6 +106,6 @@ export class Field extends Identifier {
     }
 
     toSQL() {
-        return `${toSQL(this.table, null)}.${toSQL(this.fieldName == '*' ? new RawSQL('*') : this.name, null)}`;
+        return `${toSql(this.table, null)}.` + super.toSQL();
     }
 }
