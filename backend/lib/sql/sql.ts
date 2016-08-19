@@ -1,42 +1,46 @@
-import {SQL} from "./Base";
+import {SelectQuery} from "./SelectQuery";
+import {Field, Table, RawSQL} from "./DataSource";
+import {Identifier} from "./Identifier";
+import {Functions} from "./Functions";
+export class SQL {
+    select() {
+        return new SelectQuery();
+    }
 
+    insertInto(): any {
 
-var sql = new SQL();
-var table = sql.table('a');
-var table2 = sql.table('b');
-var id = sql.attr(table, 'id');
-var title = sql.attr(table, 'title');
+    }
 
-const foo = sql.identifier('foo');
-const y = sql.identifier('y');
-const tbl = sql.identifier('tbl');
+    update(): any {
 
-sql
-    .select()
-    .attrs([
-        '*',
-        table.all(),
-        id,
-        id.as(foo),
-        sql.fun.MAX(y, id)
-    ])
-    .directive.ALL()
-    .directive.DISTINCT()
-    .from(table.as(tbl)
-        .leftJoin(table2, id.equal(id).and(id.greatThan(10)))
-    )
-    .where(
-        id.greatThan(10).and(title.like("foo"))
-    )
-    .groupBy(
-        id
-    )
-    .having(
-        id
-    )
-    .orderBy([id.desc()])
-    .limit(1, 2);
+    }
 
+    replace(): any {
+
+    }
+
+    delete(): any {
+
+    }
+
+    all(){
+        return new RawSQL('*');
+    }
+
+    table(name: string) {
+        return new Table(new Identifier(name));
+    }
+
+    identifier(name: string) {
+        return new Identifier(name);
+    }
+
+    attr(table: Table, name: string) {
+        return new Field(table, name);
+    }
+
+    fun = Functions;
+}
 /*
 
  sql

@@ -1,7 +1,10 @@
-import {Base, Procedure, Identifier, toSQL} from "./Base";
+import {Base} from "./Base";
 import {Expression, LeftExpression, ExpressionTypes} from "./Expression";
 import {DataSource} from "./DataSource";
 import {QueryValues} from "../query";
+import {Identifier} from "./Identifier";
+import {Procedure} from "./Procedure";
+import {toSql} from "./common";
 
 /*
  * SELECT
@@ -126,30 +129,30 @@ export class SelectQuery extends Base {
             sql += ' ' + this._directives.join(' ');
         }
         if (this._attrs && this._attrs.length) {
-            sql += ' ' + this._attrs.map(attr => toSQL(attr, values)).join(', ');
+            sql += ' ' + this._attrs.map(attr => toSql(attr, values)).join(', ');
         } else {
             sql += ' *';
         }
         if (this._from && this._from.length) {
-            sql += ' FROM ' + this._from.map(ds => toSQL(ds, values)).join(', ');
+            sql += ' FROM ' + this._from.map(ds => toSql(ds, values)).join(', ');
         }
         if (this.where && this._from.length) {
-            sql += ' WHERE ' + this._where.map(expr => toSQL(expr, values)).join(' AND ');
+            sql += ' WHERE ' + this._where.map(expr => toSql(expr, values)).join(' AND ');
         }
         if (this._groupBy && this._groupBy.length) {
-            sql += ' GROUP BY ' + this._groupBy.map(expr => toSQL(expr, values)).join(', ');
+            sql += ' GROUP BY ' + this._groupBy.map(expr => toSql(expr, values)).join(', ');
             if (this._groupByWithRollup) {
                 sql += ' WITH ROLLUP';
             }
         }
         if (this._having && this._having.length) {
-            sql += ' HAVING ' + this._having.map(expr => toSQL(expr, values)).join(' AND ');
+            sql += ' HAVING ' + this._having.map(expr => toSql(expr, values)).join(' AND ');
         }
         if (this._orderBy && this._orderBy.length) {
-            sql += ' ORDER BY ' + this._orderBy.map(expr => toSQL(expr, values)).join(', ');
+            sql += ' ORDER BY ' + this._orderBy.map(expr => toSql(expr, values)).join(', ');
         }
         if (this._limit) {
-            sql += ` LIMIT ${toSQL(this._offset || 0, values)}, ${toSQL(this._limit, values)}`;
+            sql += ` LIMIT ${toSql(this._offset || 0, values)}, ${toSql(this._limit, values)}`;
         }
         if (this._forUpdate) {
             sql += ' FOR UPDATE'
@@ -158,13 +161,13 @@ export class SelectQuery extends Base {
             sql += ' LOCK IN SHARE MODE'
         }
         if (this._procedure) {
-            sql += ' PROCEDURE ' + toSQL(this._procedure, values);
+            sql += ' PROCEDURE ' + toSql(this._procedure, values);
         }
         if (this._into && this._into.length) {
-            sql += ' INTO ' + this._into.map(v => toSQL(v, values)).join(', ');
+            sql += ' INTO ' + this._into.map(v => toSql(v, values)).join(', ');
         }
         if (this._union) {
-            sql = `(${sql}) UNION ${this._unionAll ? 'ALL ' : ' '}(${toSQL(this._union, values)})`
+            sql = `(${sql}) UNION ${this._unionAll ? 'ALL ' : ' '}(${toSql(this._union, values)})`
         }
         return sql;
     }
@@ -197,7 +200,7 @@ export class SelectDirectives<T> {
     SQL_CALC_FOUND_ROWS() { return this._directive('SQL_CALC_FOUND_ROWS')}
 
     private _directive(name: string, val?: number) {
-        this.directives.push(val ? name : `${name}=${+val}`);
+        this.directives.push(val ? `${name}=${+val}` : name);
         return this.owner;
     }
 }

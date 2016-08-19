@@ -1,5 +1,6 @@
-import {Base, toSQL, RawValue} from "./Base";
+import {Base, RawValue} from "./Base";
 import {QueryValues} from "../query";
+import {toSql} from "./common";
 
 type Raw = RawValue;
 type RawOrExpression = RawValue | Expression;
@@ -232,7 +233,7 @@ export class LeftExpression extends Expression {
     }
 
     toSQL(values: QueryValues) {
-        return this.typeL(toSQL(this.left, values));
+        return this.typeL(toSql(this.left, values));
     }
 }
 
@@ -245,7 +246,7 @@ export class LeftRightExpression extends Expression {
         if (this.typeLR == ExpressionTypes.IN && (!(this.right instanceof Array) || this.right.length == 0)) {
             this.right = null;
         }
-        return this.typeLR(toSQL(this.left, values), toSQL(this.right, values));
+        return this.typeLR(toSql(this.left, values), toSql(this.right, values));
     }
 }
 
@@ -255,6 +256,6 @@ export class LeftABExpression extends Expression {
     }
 
     toSQL(values: QueryValues) {
-        return this.typeAB(toSQL(this.left, values), toSQL(this.a, values), toSQL(this.b, values));
+        return this.typeAB(toSql(this.left, values), toSql(this.a, values), toSql(this.b, values));
     }
 }
