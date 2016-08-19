@@ -31,8 +31,9 @@ async function start() {
         taskRunner.run();
 
         while (true) {
-            await sleep(60 * 60 * 1000);
+            await sleep(5 * 60 * 1000);
             await fileSync.removeOldTracks();
+            taskRunner.run();
         }
     } catch (e) {
         logger.error(e);
