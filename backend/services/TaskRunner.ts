@@ -27,11 +27,11 @@ export class TaskRunner {
             const lastTrackDate = new Attribute(null, 'lastTrackDate');
 
             const results = await this.station.findAll({
-                attributes: [Station.table.allFields(), Station.id, SQLFunctions.MAX(Track.createdAt).as(lastTrackDate), Track.error],
+                attributes: [Station.table.allFields(), SQLFunctions.MAX(Track.createdAt).as(lastTrackDate)],
                 table: Station.table.leftJoin(Track.table, Station.id.equal(Track.stationId)),
                 group: Station.id,
                 order: lastTrackDate
-            }) as (StationEntity & Track & {lastTrackDate: Date})[];
+            }) as (StationEntity & {lastTrackDate: Date})[];
 
             // this.logger.log('Run stations', results.map(st => st.slug));
 
