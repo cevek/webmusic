@@ -11,7 +11,7 @@ export class TaskRunner {
     runnedTasks = 0;
     config = inject(Config);
     logger = inject(Logger);
-    minDiffDays = 1;
+    minDiffSeconds = 3 * 3600;
     db = inject(DB);
     station = inject(Station);
 
@@ -33,7 +33,7 @@ export class TaskRunner {
                         .brackets()
                         .as(Station.table))
                     .where(
-                        SQLFunctions.DATEDIFF(new Date(), Track.createdAt.onlyName()).greatThan(this.minDiffDays)
+                        SQLFunctions.TIME_TO_SEC(SQLFunctions.TIMEDIFF(new Date(), Track.createdAt.onlyName())).greatThan(this.minDiffSeconds)
                             .or(Track.createdAt.onlyName().isNull()))
                     .orderBy(Track.createdAt.onlyName().asc())
                     .limit(limit);
