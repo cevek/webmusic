@@ -13,7 +13,7 @@ const ENV = process.env['NODE_ENV'] || 'development';
 
 require('source-map-support').install();
 Error.stackTraceLimit = 30;
-bluebird.longStackTraces();
+// bluebird.longStackTraces();
 
 const {config} = require('./config.' + ENV + '.js');
 bindInjection(Config, config);
