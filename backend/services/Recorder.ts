@@ -72,11 +72,6 @@ export class Recorder {
                 size: result.size
             }, trackId);
 
-            await this.stationDAO.updateCustom({
-                set: Station.recording.assign(false),
-                where: Station.id.equal(this.station.id)
-            })
-
         } catch (e) {
             this.logger.error(e);
         }

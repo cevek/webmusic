@@ -23,7 +23,6 @@ async function start() {
     const logger = inject(Logger)
     try {
         const fileSync = inject(FileSync);
-        await fileSync.resetRecordingStations();
         await fileSync.removeNonStoppedTracks();
         await fileSync.removeOldTracks();
 

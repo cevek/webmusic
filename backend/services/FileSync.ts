@@ -37,16 +37,6 @@ export class FileSync {
         }
     }
 
-    async resetRecordingStations() {
-        const affected = await this.station.updateCustom({
-            set: Station.recording.assign(false),
-            where: Station.recording.equal(true)
-        })
-        if (affected > 0) {
-            this.logger.log('reset recording stations after restart', affected);
-        }
-    }
-
     async removeNonStoppedTracks() {
         const affected = await this.track.removeCustom({
             where: Track.endedAt.isNull()

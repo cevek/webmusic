@@ -3,7 +3,7 @@ import {inject} from "../lib/injector";
 import {Config} from "../config";
 import {DB} from "../lib/db";
 import {Station, StationEntity} from "../models/Station";
-import {QueryBuilder} from "../lib/query";
+import {Attribute} from "../lib/query";
 import {Track} from "../models/Track";
 import {SQLFunctions} from "../lib/SQLFunctions";
 import {Recorder} from "./Recorder";
@@ -11,9 +11,10 @@ export class TaskRunner {
     runnedTasks = 0;
     config = inject(Config);
     logger = inject(Logger);
-    minDiffSeconds = 3 * 3600;
+    minDiffSeconds = 1 * 3600;
     db = inject(DB);
     station = inject(Station);
+    recordingStations = new Set<number>();
 
     async run() {
         try {
@@ -23,42 +24,35 @@ export class TaskRunner {
             }
             const limit = this.config.limitConcurentProcess - this.runnedTasks;
 
-            const results = await this.db.transaction(async(trx) => {
-                let query = new QueryBuilder().select(null).from(
-                    new QueryBuilder()
-                        .select([Station.table.allFields(), Station.id.as('foo'), SQLFunctions.MAX(Track.createdAt).as(Track.createdAt.onlyName())])
-                        .from(Station.table.leftJoin(Track.table,
-                            Station.id.equal(Track.stationId)))
-                        .groupBy(Station.id)
-                        .brackets()
-                        .as(Station.table))
-                    .where(
-                        SQLFunctions.TIME_TO_SEC(SQLFunctions.TIMEDIFF(new Date(), Track.createdAt.onlyName())).greatThan(this.minDiffSeconds)
-                            .or(Track.createdAt.onlyName().isNull()))
-                    .orderBy(Track.createdAt.onlyName().asc())
-                    .limit(limit);
+            const lastTrackDate = new Attribute(null, 'lastTrackDate');
 
-                const result = await this.station.query(query, null, trx) as (StationEntity)[];
+            const results = await this.station.findAll({
+                attributes: [Station.table.allFields(), Station.id, SQLFunctions.MAX(Track.createdAt).as(lastTrackDate), Track.error],
+                table: Station.table.leftJoin(Track.table, Station.id.equal(Track.stationId)),
+                group: Station.id,
+                order: lastTrackDate
+            }) as (StationEntity & Track & {lastTrackDate: Date})[];
 
-                await this.station.updateCustom({
-                    set: Station.recording.assign(true),
-                    where: Station.id.in(result.map(st => st.id)),
-                }, trx)
-                return result;
-            })
-
-            this.logger.log('Run stations', results.map(st => st.slug));
+            // this.logger.log('Run stations', results.map(st => st.slug));
 
             for (let i = 0; i < results.length; i++) {
                 const station = results[i];
+                if (this.recordingStations.has(station.id)) {
+                    continue;
+                }
+                if (station.lastTrackDate.getTime() < this.minDiffSeconds * 1000) {
+                    continue;
+                }
                 const recorder = new Recorder(station);
 
                 if (this.runnedTasks >= this.config.limitConcurentProcess) {
                     break;
                 }
                 this.runnedTasks++;
+                this.recordingStations.add(station.id);
                 recorder.start().then(() => {
                     this.runnedTasks--;
+                    this.recordingStations.delete(station.id);
                     this.run()
                 })
             }
