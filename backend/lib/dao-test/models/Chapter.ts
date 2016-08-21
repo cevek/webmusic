@@ -3,7 +3,7 @@ import {Paragraph} from "./Paragraph";
 import {Author} from "./Author";
 import {Doc} from "./Doc";
 import {ChapterInfo} from "./ChapterInfo";
-import {SQL} from "../../sql/sql";
+import {SQL} from "../../sql/index";
 
 export class Chapter extends DAO<{}> {
     static table =SQL.table('Chapter');

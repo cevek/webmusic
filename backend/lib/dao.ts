@@ -4,7 +4,7 @@ import {Transaction} from "./Transaction";
 import {inject} from "./injector";
 import {ResultSetHeader} from "./Connection";
 import {QueryValues} from "./sql/Base";
-import {SQL} from "./sql/sql";
+import {SQL} from "./sql/index";
 import {Field, Table} from "./sql/DataSource";
 import {Expression} from "./sql/Expression";
 import {Identifier} from "./sql/Identifier";

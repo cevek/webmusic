@@ -1,5 +1,5 @@
 import {Test} from "tape";
-import {SQL} from "../sql";
+import {SQL} from "../index";
 import tape = require("tape");
 import {QueryValues} from "../Base";
 

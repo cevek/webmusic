@@ -1,6 +1,6 @@
 import {DAO} from "../../dao";
 import {Chapter} from "./Chapter";
-import {SQL} from "../../sql/sql";
+import {SQL} from "../../sql/index";
 
 export class Doc extends DAO<{}> {
     static table = SQL.table('Doc');

@@ -1,7 +1,7 @@
 import {DAO} from "../../dao";
 import {Chapter} from "./Chapter";
 import {ChapterStatistic} from "./ChapterStatistic";
-import {SQL} from "../../sql/sql";
+import {SQL} from "../../sql/index";
 
 export class ChapterInfo extends DAO<{}> {
     static table = SQL.table('ChapterInfo');
