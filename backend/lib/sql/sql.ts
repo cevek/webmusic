@@ -40,6 +40,8 @@ export class SQL {
     }
 
     fun = Functions;
+
+    default = new RawSQL('DEFAULT')
 }
 /*
 

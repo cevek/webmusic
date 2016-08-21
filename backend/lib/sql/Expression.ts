@@ -51,8 +51,6 @@ export const ExpressionTypes = {
     ASC(left: Raw) {return `${left} ASC`},
     DESC(left: Raw) {return `${left} DESC`},
 
-    DEFAULT(left: Raw) {return `${left} DEFAULT`},
-    NULL(left: Raw) {return `${left} NULL`},
     BRACKETS(left: Raw) {return `(${left})`},
 
     CASE(left: Raw, right: Raw) {return `${left} CASE ${right}`},
@@ -236,13 +234,6 @@ export class Expression extends Base {
         return new LeftExpression(ExpressionTypes.DESC, this);
     }
 
-    default() {
-        return new LeftExpression(ExpressionTypes.DEFAULT, this);
-    }
-
-    null() {
-        return new LeftExpression(ExpressionTypes.NULL, this);
-    }
 
     case(expr?: Expression): Expression {
         if (expr) {
@@ -260,7 +251,7 @@ export class Expression extends Base {
     }
 
     end() {
-        return new LeftExpression(ExpressionTypes.NULL, this);
+        return new LeftExpression(ExpressionTypes.END, this);
     }
 
     as(identifier: Identifier): Expression {
