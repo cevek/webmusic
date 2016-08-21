@@ -6,7 +6,7 @@ import {Identifier} from "./Identifier";
 import {Procedure} from "./Procedure";
 import {toSql} from "./common";
 
-/*
+/**
  * SELECT
  *     [ALL | DISTINCT | DISTINCTROW]
  *     [HIGH_PRIORITY]
@@ -136,7 +136,7 @@ export class SelectQuery extends Base {
         if (this._from && this._from.length) {
             sql += ' FROM ' + this._from.map(ds => toSql(ds, values)).join(', ');
         }
-        if (this.where && this._from.length) {
+        if (this._where && this._where.length) {
             sql += ' WHERE ' + this._where.map(expr => toSql(expr, values)).join(' AND ');
         }
         if (this._groupBy && this._groupBy.length) {
