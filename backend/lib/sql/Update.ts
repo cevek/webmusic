@@ -1,4 +1,4 @@
-import {Base} from "./Base";
+import {Statement} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
 import {QueryValues} from "../query";
@@ -12,21 +12,24 @@ import {toSql} from "./common";
  * [LIMIT row_count]
  */
 
-export class Update extends Base {
+export class Update extends Statement {
     private _lowPriority: boolean = false;
     private _ignore: boolean = false;
     private _table: DataSource = null;
+    private _where: Expression[] = null;
     private _set: Expression[] = null;
     private _orderBy: Expression[] = null;
     private _limit: number = null;
 
-    lowPriority() {
-        this._lowPriority = true;
+    //todo: value
+
+    lowPriority(state = true) {
+        this._lowPriority = state;
         return this;
     }
 
-    ignore() {
-        this._ignore = true;
+    ignore(state = true) {
+        this._ignore = state;
         return this;
     }
 
@@ -37,6 +40,16 @@ export class Update extends Base {
 
     set(expr: Expression | Expression[]) {
         this._set = expr instanceof Array ? expr : [expr];
+        return this;
+    }
+
+    value(obj: {}) {
+        //todo
+        return this;
+    }
+
+    where(expr: Expression | Expression[]) {
+        this._where = expr instanceof Array ? expr : [expr];
         return this;
     }
 
@@ -63,6 +76,9 @@ export class Update extends Base {
         }
         if (this._set && this._set.length) {
             sql += ' SET ' + this._set.map(expr => toSql(expr, values)).join(', ');
+        }
+        if (this._where && this._where.length) {
+            sql += ' WHERE ' + this._where.map(expr => toSql(expr, values)).join(' AND ');
         }
         if (this._orderBy && this._orderBy.length) {
             sql += ' ORDER BY ' + this._orderBy.map(expr => toSql(expr, values)).join(', ');

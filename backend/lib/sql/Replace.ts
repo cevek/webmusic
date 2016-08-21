@@ -1,7 +1,6 @@
-import {Base, RawValue, Raw} from "./Base";
+import {Base, Raw, QueryValues} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
-import {QueryValues} from "../query";
 import {toSql} from "./common";
 import {Identifier} from "./Identifier";
 import {SelectQuery} from "./SelectQuery";
@@ -38,13 +37,18 @@ export class Replace extends Base {
     private _set: Expression[] = null;
     private _select: SelectQuery = null;
 
-    lowPriority() {
-        this._lowPriority = true;
+    constructor() {
+        super();
+    }
+
+
+    lowPriority(state = true) {
+        this._lowPriority = state;
         return this;
     }
 
-    delayed() {
-        this._delayed = true;
+    delayed(state = true) {
+        this._delayed = state;
         return this;
     }
 

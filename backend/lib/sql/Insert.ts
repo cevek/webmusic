@@ -1,7 +1,6 @@
-import {Base, RawValue, Raw} from "./Base";
+import {Raw, QueryValues, Statement} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
-import {QueryValues} from "../query";
 import {toSql} from "./common";
 import {Identifier} from "./Identifier";
 import {SelectQuery} from "./SelectQuery";
@@ -39,7 +38,7 @@ INSERT [LOW_PRIORITY | HIGH_PRIORITY] [IGNORE]
 
 `
 
-export class Replace extends Base {
+export class Insert extends Statement {
     private _lowPriority: boolean = false;
     private _delayed: boolean = false;
     private _highPriority: boolean = false;
@@ -52,23 +51,28 @@ export class Replace extends Base {
     private _onDuplicateKeyUpdate: Expression[] = null;
     private _select: SelectQuery = null;
 
-    lowPriority() {
-        this._lowPriority = true;
+    constructor() {
+        super();
+    }
+
+
+    lowPriority(state = true) {
+        this._lowPriority = state;
         return this;
     }
 
-    delayed() {
-        this._delayed = true;
+    delayed(state = true) {
+        this._delayed = state;
         return this;
     }
 
-    highPriority() {
-        this._highPriority = true;
+    highPriority(state = true) {
+        this._highPriority = state;
         return this;
     }
 
-    ignore() {
-        this._ignore = true;
+    ignore(state = true) {
+        this._ignore = state;
         return this;
     }
 
