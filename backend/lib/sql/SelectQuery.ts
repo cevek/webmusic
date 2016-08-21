@@ -1,6 +1,6 @@
-import {Base} from "./Base";
+import {Statement} from "./Base";
 import {Expression, LeftExpression, ExpressionTypes} from "./Expression";
-import {DataSource} from "./DataSource";
+import {DataSource, RawSQL} from "./DataSource";
 import {QueryValues} from "../query";
 import {Identifier} from "./Identifier";
 import {Procedure} from "./Procedure";
@@ -37,8 +37,8 @@ import {toSql} from "./common";
  */
 
 
-export class SelectQuery extends Base {
-    private _directives: string[] = [];
+export class SelectQuery extends Statement {
+    private _directives: SelectDirective[] = null;
     private _attrs: Expression[] = null;
     private _from: DataSource[] = null;
     private _where: Expression[] = null;
@@ -55,12 +55,18 @@ export class SelectQuery extends Base {
     private _union: SelectQuery = null;
     private _unionAll: boolean = null;
 
+    constructor() {
+        super();
+    }
+
     attrs(attrs: Expression | Expression[]) {
         this._attrs = attrs instanceof Array ? attrs : [attrs];
         return this;
     }
 
-    directive = new SelectDirectives<SelectQuery>(this, this._directives);
+    directives(directives: SelectDirective | SelectDirective[]) {
+        this._directives = directives instanceof Array ? directives : [directives];
+    }
 
     from(table: DataSource | DataSource[]) {
         this._from = table instanceof Array ? table : [table];
@@ -104,13 +110,13 @@ export class SelectQuery extends Base {
         return this;
     }
 
-    forUpdate() {
-        this._forUpdate = true;
+    forUpdate(state = true) {
+        this._forUpdate = state;
         return this;
     }
 
-    lockInShareMode() {
-        this._lockInShareMode = true;
+    lockInShareMode(state = true) {
+        this._lockInShareMode = state;
         return this;
     }
 
@@ -126,7 +132,7 @@ export class SelectQuery extends Base {
     toSQL(values: QueryValues) {
         let sql = 'SELECT';
         if (this._directives && this._directives.length) {
-            sql += ' ' + this._directives.join(' ');
+            sql += ' ' + this._directives.map(dir => toSql(new RawSQL(SelectDirective[dir]), null)).join(' ');
         }
         if (this._attrs && this._attrs.length) {
             sql += ' ' + this._attrs.map(attr => toSql(attr, values)).join(', ');
@@ -172,35 +178,18 @@ export class SelectQuery extends Base {
         return sql;
     }
 }
-export class SelectDirectives<T> {
-    constructor(protected owner: T, protected directives: string[]) {}
 
-    ALL() { return this._directive('ALL')}
-
-    DISTINCT() { return this._directive('DISTINCT')}
-
-    DISTINCTROW() { return this._directive('DISTINCTROW')}
-
-    HIGH_PRIORITY() { return this._directive('HIGH_PRIORITY')}
-
-    MAX_STATEMENT_TIME(val: number) { return this._directive('MAX_STATEMENT_TIME', val)}
-
-    STRAIGHT_JOIN() { return this._directive('STRAIGHT_JOIN')}
-
-    SQL_SMALL_RESULT() { return this._directive('SQL_SMALL_RESULT')}
-
-    SQL_BIG_RESULT() { return this._directive('SQL_BIG_RESULT')}
-
-    SQL_BUFFER_RESULT() { return this._directive('SQL_BUFFER_RESULT')}
-
-    SQL_CACHE() { return this._directive('SQL_CACHE')}
-
-    SQL_NO_CACHE() { return this._directive('SQL_NO_CACHE')}
-
-    SQL_CALC_FOUND_ROWS() { return this._directive('SQL_CALC_FOUND_ROWS')}
-
-    private _directive(name: string, val?: number) {
-        this.directives.push(val ? `${name}=${+val}` : name);
-        return this.owner;
-    }
+export enum SelectDirective{
+    ALL,
+    DISTINCT,
+    DISTINCTROW,
+    HIGH_PRIORITY,
+    MAX_STATEMENT_TIME,
+    STRAIGHT_JOIN,
+    SQL_SMALL_RESULT,
+    SQL_BIG_RESULT,
+    SQL_BUFFER_RESULT,
+    SQL_CACHE,
+    SQL_NO_CACHE,
+    SQL_CALC_FOUND_ROWS,
 }
