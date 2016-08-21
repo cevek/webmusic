@@ -1,85 +1,101 @@
 import {QueryValues, Statement} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
-import {toSql} from "./common";
+import {toSql, toArray} from "./common";
 `
-DELETE [LOW_PRIORITY] [QUICK] [IGNORE] 
-    FROM tbl_name
-        [PARTITION (partition_name,...)]
-    [WHERE where_condition]
+DELETE [LOWPRIORITY] [QUICK] [IGNORE] 
+    FROM tblname
+        [PARTITION (partitionname,...)]
+    [WHERE wherecondition]
     [ORDER BY ...]
-    [LIMIT row_count]
+    [LIMIT rowcount]
 `
+
+export class DeleteParams {
+    lowPriority?: boolean = false;
+    ignore?: boolean = false;
+    quick?: boolean = false;
+    from?: DataSource = null;
+    where?: Expression | Expression[] = null;
+    orderBy?: Expression | Expression[] = null;
+    limit?: number = null;
+}
+
 export class Delete extends Statement {
-    private _lowPriority: boolean = false;
-    private _ignore: boolean = false;
-    private _quick: boolean = false;
-    private _from: DataSource = null;
-    private _where: Expression[] = null;
-    private _orderBy: Expression[] = null;
-    private _limit: number = null;
+    private params = new DeleteParams();
 
     constructor() {
         super();
     }
 
+    fromParams(params: DeleteParams) {
+        return new Delete()
+            .lowPriority(params.lowPriority)
+            .ignore(params.ignore)
+            .quick(params.quick)
+            .from(params.from)
+            .where(params.where)
+            .orderBy(params.orderBy)
+            .limit(params.limit)
+    }
+
     lowPriority(state = true) {
-        this._lowPriority = state;
+        this.params.lowPriority = state;
         return this;
     }
 
     ignore(state = true) {
-        this._ignore = state;
+        this.params.ignore = state;
         return this;
     }
 
     quick(state = true) {
-        this._quick = state;
+        this.params.quick = state;
         return this;
     }
 
     from(table: DataSource) {
-        this._from = table;
+        this.params.from = table;
         return this;
     }
 
     where(expr: Expression | Expression[]) {
-        this._where = expr instanceof Array ? expr : [expr];
+        this.params.where = expr;
         return this;
     }
 
     orderBy(expr: Expression | Expression[]) {
-        this._orderBy = expr instanceof Array ? expr : [expr];
+        this.params.orderBy = expr;
         return this;
     }
 
     limit(limit: number) {
-        this._limit = limit;
+        this.params.limit = limit;
         return this;
     }
 
     toSQL(values: QueryValues) {
         let sql = 'UPDATE';
-        if (this._lowPriority) {
+        if (this.params.lowPriority) {
             sql += ' LOW PRIORITY'
         }
-        if (this._ignore) {
+        if (this.params.ignore) {
             sql += ' IGNORE'
         }
-        if (this._ignore) {
+        if (this.params.ignore) {
             sql += ' QUICK'
         }
-        if (this._from) {
-            sql += ' FROM ' + toSql(this._from, values);
+        if (this.params.from) {
+            sql += ' FROM ' + toSql(this.params.from, values);
         }
-        if (this._where && this._where.length) {
-            sql += ' WHERE ' + this._where.map(expr => toSql(expr, values)).join(' AND ');
+        if (this.params.where) {
+            sql += ' WHERE ' + toArray(this.params.where, values, ' AND ');
         }
-        if (this._orderBy && this._orderBy.length) {
-            sql += ' ORDER BY ' + this._orderBy.map(expr => toSql(expr, values)).join(', ');
+        if (this.params.orderBy) {
+            sql += ' ORDER BY ' + toArray(this.params.orderBy, values, ', ');
         }
-        if (this._limit) {
-            sql += ` LIMIT ${toSql(this._limit, values)}`;
+        if (this.params.limit) {
+            sql += ` LIMIT ${toSql(this.params.limit, values)}`;
         }
         return sql;
     }

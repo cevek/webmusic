@@ -1,8 +1,7 @@
-import {Statement} from "./Base";
+import {Statement, QueryValues} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
-import {QueryValues} from "../query";
-import {toSql} from "./common";
+import {toSql, toArray} from "./common";
 
 /**
  * UPDATE [LOW_PRIORITY] [IGNORE] table_reference
@@ -12,81 +11,95 @@ import {toSql} from "./common";
  * [LIMIT row_count]
  */
 
-export class Update extends Statement {
-    private _lowPriority: boolean = false;
-    private _ignore: boolean = false;
-    private _table: DataSource = null;
-    private _where: Expression[] = null;
-    private _set: Expression[] = null;
-    private _orderBy: Expression[] = null;
-    private _limit: number = null;
+export class UpdateParams {
+    ignore?: boolean = false;
+    lowPriority?: boolean = false;
+    table?: DataSource = null;
+    set?: Expression | Expression[] = null;
+    value?: {} = null;
+    where?: Expression | Expression[] = null;
+    orderBy?: Expression | Expression[] = null;
+    limit?: number = null;
+}
 
-    //todo: value
+export class Update extends Statement {
+    private params = new UpdateParams();
+
+    fromParams(params: UpdateParams){
+        return new Update()
+            .ignore(params.ignore)
+            .lowPriority(params.lowPriority)
+            .table(params.table)
+            .object(params.value)
+            .where(params.where)
+            .orderBy(params.orderBy)
+            .limit(params.limit)
+            .set(params.set)
+    }
 
     lowPriority(state = true) {
-        this._lowPriority = state;
+        this.params.lowPriority = state;
         return this;
     }
 
     ignore(state = true) {
-        this._ignore = state;
+        this.params.ignore = state;
         return this;
     }
 
     table(table: DataSource) {
-        this._table = table;
+        this.params.table = table;
         return this;
     }
 
     set(expr: Expression | Expression[]) {
-        this._set = expr instanceof Array ? expr : [expr];
+        this.params.set = expr;
         return this;
     }
 
-    value(obj: {}) {
+    object(obj: {}) {
         //todo
         return this;
     }
 
     where(expr: Expression | Expression[]) {
-        this._where = expr instanceof Array ? expr : [expr];
+        this.params.where = expr;
         return this;
     }
 
     orderBy(expr: Expression | Expression[]) {
-        this._orderBy = expr instanceof Array ? expr : [expr];
+        this.params.orderBy = expr;
         return this;
     }
 
     limit(limit: number) {
-        this._limit = limit;
+        this.params.limit = limit;
         return this;
     }
 
     toSQL(values: QueryValues) {
         let sql = 'UPDATE';
-        if (this._lowPriority) {
+        if (this.params.lowPriority) {
             sql += ' LOW PRIORITY'
         }
-        if (this._ignore) {
+        if (this.params.ignore) {
             sql += ' IGNORE'
         }
-        if (this._table) {
-            sql += ' ' + toSql(this._table, values);
+        if (this.params.table) {
+            sql += ' ' + toSql(this.params.table, values);
         }
-        if (this._set && this._set.length) {
-            sql += ' SET ' + this._set.map(expr => toSql(expr, values)).join(', ');
+        if (this.params.set) {
+            sql += ' SET ' + toArray(this.params.set, values, ', ');
         }
-        if (this._where && this._where.length) {
-            sql += ' WHERE ' + this._where.map(expr => toSql(expr, values)).join(' AND ');
+        if (this.params.where) {
+            sql += ' WHERE ' + toArray(this.params.where, values, ' AND ');
         }
-        if (this._orderBy && this._orderBy.length) {
-            sql += ' ORDER BY ' + this._orderBy.map(expr => toSql(expr, values)).join(', ');
+        if (this.params.orderBy) {
+            sql += ' ORDER BY ' + toArray(this.params.orderBy, values, ', ');
         }
-        if (this._limit) {
-            sql += ` LIMIT ${toSql(this._limit, values)}`;
+        if (this.params.limit) {
+            sql += ` LIMIT ${toSql(this.params.limit, values)}`;
         }
         return sql;
     }
-
 }

@@ -1,7 +1,7 @@
 import {Raw, QueryValues, Statement} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
-import {toSql} from "./common";
+import {toSql, toArray} from "./common";
 import {Identifier} from "./Identifier";
 import {SelectQuery} from "./SelectQuery";
 
@@ -37,106 +37,129 @@ INSERT [LOW_PRIORITY | HIGH_PRIORITY] [IGNORE]
         [, col_name=expr] ... ]
 
 `
+export class InsertParams {
+    lowPriority?: boolean = false;
+    delayed?: boolean = false;
+    highPriority?: boolean = false;
+    ignore?: boolean = false;
+
+    into?: DataSource = null;
+    cols?: Identifier | Identifier[] = null;
+    values?: (Expression | Raw)[][] = null;
+    set?: Expression | Expression[] = null;
+    onDuplicateKeyUpdate?: Expression | Expression[] = null;
+    select?: SelectQuery = null;
+}
 
 export class Insert extends Statement {
-    private _lowPriority: boolean = false;
-    private _delayed: boolean = false;
-    private _highPriority: boolean = false;
-    private _ignore: boolean = false;
-
-    private _into: DataSource = null;
-    private _cols: Identifier[] = null;
-    private _values: (Expression | Raw)[][] = null;
-    private _set: Expression[] = null;
-    private _onDuplicateKeyUpdate: Expression[] = null;
-    private _select: SelectQuery = null;
+    params = new InsertParams();
 
     constructor() {
         super();
     }
 
+    fromParams(params: InsertParams) {
+        return new Insert()
+            .lowPriority(params.lowPriority)
+            .delayed(params.delayed)
+            .highPriority(params.highPriority)
+            .ignore(params.ignore)
+
+            .into(params.into)
+            .cols(params.cols)
+            .values(params.values)
+            .set(params.set)
+            .onDuplicateKeyUpdate(params.onDuplicateKeyUpdate)
+            .select(params.select)
+    }
+
 
     lowPriority(state = true) {
-        this._lowPriority = state;
+        this.params.lowPriority = state;
         return this;
     }
 
     delayed(state = true) {
-        this._delayed = state;
+        this.params.delayed = state;
         return this;
     }
 
     highPriority(state = true) {
-        this._highPriority = state;
+        this.params.highPriority = state;
         return this;
     }
 
     ignore(state = true) {
-        this._ignore = state;
+        this.params.ignore = state;
         return this;
     }
 
     into(table: DataSource) {
-        this._into = table;
+        this.params.into = table;
         return this;
     }
 
     set(expr: Expression | Expression[]) {
-        this._set = expr instanceof Array ? expr : [expr];
+        this.params.set = expr;
+        return this;
+    }
+
+    objects(obj: {}) {
+        //todo
         return this;
     }
 
     cols(identifiers: Identifier | Identifier[]) {
-        this._cols = identifiers instanceof Array ? identifiers : [identifiers];
+        this.params.cols = identifiers;
         return this;
     }
 
     values(values: (Expression | Raw)[][]) {
-        this._values = values;
+        this.params.values = values;
         return this;
     }
 
     onDuplicateKeyUpdate(expr: Expression | Expression[]) {
-        this._onDuplicateKeyUpdate = expr instanceof Array ? expr : [expr];
+        this.params.onDuplicateKeyUpdate = expr;
         return this;
     }
 
     select(query: SelectQuery) {
-        this._select = query;
+        this.params.select = query;
         return this;
     }
 
     toSQL(values: QueryValues) {
         let sql = 'INSERT';
-        if (this._lowPriority) {
+        if (this.params.lowPriority) {
             sql += ' LOW PRIORITY'
         }
-        if (this._delayed) {
+        if (this.params.delayed) {
             sql += ' DELAYED'
         }
-        if (this._highPriority) {
+        if (this.params.highPriority) {
             sql += ' HIGH_PRIORITY'
         }
-        if (this._ignore) {
+        if (this.params.ignore) {
             sql += ' IGNORE'
         }
-        if (this._into) {
-            sql += ' INTO ' + toSql(this._into, values);
+        if (this.params.into) {
+            sql += ' INTO ' + toSql(this.params.into, values);
         }
-        if (this._cols && this._cols.length) {
-            sql += ` (${this._cols.map(expr => toSql(expr, values)).join(', ')})`;
+        if (this.params.cols) {
+            sql += ` (${toArray(this.params.cols, values, ', ')})`;
         }
-        if (this._set && this._set.length) {
-            sql += ' SET ' + this._set.map(expr => toSql(expr, values)).join(', ');
+        if (this.params.set) {
+            sql += ' SET ' + toArray(this.params.set, values, ', ');
         }
-        if (this._values && this._values.length) {
-            sql += ' VALUES ' + toSql(this._values as {} as Raw[], values);
+        if (this.params.values) {
+            sql += ' VALUES ' + toSql(this.params.values as {} as Raw[], values);
         }
-        if (this._select) {
-            sql += ' ' + toSql(this._select, values);
+        if (this.params.select) {
+            sql += ' ' + toSql(this.params.select, values);
         }
-        if (this._onDuplicateKeyUpdate) {
-            sql += ' ON DUPLICATE KEY UPDATE ' + this._onDuplicateKeyUpdate.map(expr => toSql(expr, values)).join(', ');
+        if (this.params.onDuplicateKeyUpdate) {
+            sql += ' ON DUPLICATE KEY UPDATE ' + toArray(this.params.onDuplicateKeyUpdate, values, ', ');
         }
         return sql;
     }
