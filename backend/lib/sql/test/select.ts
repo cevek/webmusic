@@ -1,8 +1,7 @@
 import {Test} from "tape";
-import {SQL} from "../sql/sql";
+import {SQL} from "../sql";
 import tape = require("tape");
-import {QueryValues} from "../sql/Base";
-
+import {QueryValues} from "../Base";
 
 const trackTable = SQL.table('Track')
 const Track = {
