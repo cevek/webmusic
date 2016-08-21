@@ -1,8 +1,7 @@
 import {DAO} from "../lib/dao";
 import {Station} from "./Station";
 import {GenreStation} from "./GenreStation";
-import {Table} from "../lib/query";
-
+import {SQL} from "../lib/sql/index";
 
 export interface GenreEntity {
     id:number;
@@ -11,7 +10,7 @@ export interface GenreEntity {
 }
 
 export class Genre extends DAO<GenreEntity> {
-    static table = new Table('Genre');
+    static table = SQL.table('Genre');
     static id = Genre.field('id');
     static Name = Genre.field('name');
 

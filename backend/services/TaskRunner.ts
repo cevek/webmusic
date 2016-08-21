@@ -3,10 +3,9 @@ import {inject} from "../lib/injector";
 import {Config} from "../config";
 import {DB} from "../lib/db";
 import {Station, StationEntity} from "../models/Station";
-import {Attribute} from "../lib/query";
-import {Track} from "../models/Track";
-import {SQLFunctions} from "../lib/SQLFunctions";
 import {Recorder} from "./Recorder";
+import {SQL} from "../lib/sql/index";
+import {Track} from "../models/Track";
 export class TaskRunner {
     runnedTasks = 0;
     config = inject(Config);
@@ -24,13 +23,13 @@ export class TaskRunner {
             }
             const limit = this.config.limitConcurentProcess - this.runnedTasks;
 
-            const lastTrackDate = new Attribute(null, 'lastTrackDate');
+            const lastTrackDate = SQL.identifier('lastTrackDate');
 
             const results = await this.station.findAll({
-                attributes: [Station.table.allFields(), SQLFunctions.MAX(Track.createdAt).as(lastTrackDate)],
-                table: Station.table.leftJoin(Track.table, Station.id.equal(Track.stationId)),
-                group: Station.id,
-                order: lastTrackDate
+                attrs: [Station.table.all(), SQL.fun.MAX(Track.createdAt).as(lastTrackDate)],
+                from: Station.table.leftJoin(Track.table).on(Station.id.equal(Track.stationId)),
+                groupBy: Station.id,
+                orderBy: lastTrackDate
             }) as (StationEntity & {lastTrackDate: Date})[];
 
             // this.logger.log('Run stations', results.map(st => st.slug));

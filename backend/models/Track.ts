@@ -1,6 +1,6 @@
 import {DAO} from "../lib/dao";
 import {Station} from "./Station";
-import {Table} from "../lib/query";
+import {SQL} from "../lib/sql/index";
 export interface ITrack {
     id:number;
     stationId:number;
@@ -16,7 +16,7 @@ export interface ITrack {
 }
 
 export class Track extends DAO<ITrack> {
-    static table = new Table('Track');
+    static table = SQL.table('Track');
     static id = Track.field('id');
 
     static stationId = Track.field('stationId');

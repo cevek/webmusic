@@ -2,9 +2,9 @@ import {DAO} from "../lib/dao";
 import {GenreStation} from "./GenreStation";
 import {Genre} from "./Genre";
 import {StationInfo} from "./StationInfo";
-import {Table} from "../lib/query";
 import {Track} from "./Track";
 import {StationSimilar} from "./StationSimilar";
+import {SQL} from "../lib/sql/index";
 export interface StationEntity {
     id:number;
     name:string;
@@ -24,7 +24,7 @@ export interface StationEntity {
 }
 
 export class Station extends DAO<StationEntity> {
-    static table = new Table('Station');
+    static table = SQL.table('Station');
     static id = Station.field('id');
 
     static Name = Station.field('name');

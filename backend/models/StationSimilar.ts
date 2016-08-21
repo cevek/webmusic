@@ -1,6 +1,6 @@
 import {DAO} from "../lib/dao";
 import {Station} from "./Station";
-import {Table} from "../lib/query";
+import {SQL} from "../lib/sql/index";
 export interface StationSimilarEntity {
     id:number;
     stationId1:number;
@@ -8,7 +8,7 @@ export interface StationSimilarEntity {
 }
 
 export class StationSimilar extends DAO<StationSimilarEntity> {
-    static table = new Table('StationSimilar');
+    static table = SQL.table('StationSimilar');
     static id = StationSimilar.field('id');
 
     static stationId1 = StationSimilar.field('stationId1');

@@ -1,6 +1,6 @@
 import {DAO} from "../lib/dao";
 import {Station} from "./Station";
-import {Table} from "../lib/query";
+import {SQL} from "../lib/sql/index";
 export interface StationInfoEntity {
     id:number;
     station:Station;
@@ -9,7 +9,7 @@ export interface StationInfoEntity {
 
 
 export class StationInfo extends DAO<StationInfoEntity> {
-    static table = new Table('StationInfo');
+    static table = SQL.table('StationInfo');
     static id = StationInfo.field('id');
 
     static text = StationInfo.field('text');

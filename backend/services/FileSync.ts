@@ -1,9 +1,7 @@
 import {inject} from "../lib/injector";
 import {Track, ITrack} from "../models/Track";
-import {readdirSync} from "fs";
-import {unlinkSync} from "fs";
+import {readdirSync, unlinkSync} from "fs";
 import {Logger} from "../lib/Logger";
-import {SQLFunctions} from "../lib/SQLFunctions";
 import {Config} from "../config";
 import {Station} from "../models/Station";
 
@@ -15,9 +13,9 @@ export class FileSync {
 
     async sync() {
         const tracks = await this.track.findAll({
-            attributes: [Track.id, Track.filename],
+            attrs: [Track.id, Track.filename],
             where: Track.error.equal(0),
-            order: Track.filename
+            orderBy: Track.filename
         }) as {id:number, filename:string}[];
 
         const tracksMap = new Map(tracks.map(t => [t.filename, t]) as [string, ITrack][]);
@@ -48,8 +46,8 @@ export class FileSync {
 
     async removeOldTracks() {
         const tracks = await this.track.findAll({
-            attributes: [Track.id, Track.size],
-            order: Track.createdAt.desc()
+            attrs: [Track.id, Track.size],
+            orderBy: Track.createdAt.desc()
         }) as {id:number; size:number}[];
 
         let tracksToRemove:number[] = [];
