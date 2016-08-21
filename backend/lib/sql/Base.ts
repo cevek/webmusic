@@ -4,6 +4,7 @@ export type QueryValues = any[];
 
 export class Base {
     private _base: Base;
+
     toSQL(values: QueryValues): string {
         return '';
     }
