@@ -2,6 +2,7 @@ import {Statement, QueryValues} from "./Base";
 import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
 import {toSql, toArray} from "./common";
+import {Identifier} from "./Identifier";
 
 /**
  * UPDATE [LOW_PRIORITY] [IGNORE] table_reference
@@ -16,7 +17,7 @@ export class UpdateParams {
     lowPriority?: boolean = false;
     table?: DataSource = null;
     set?: Expression | Expression[] = null;
-    value?: {} = null;
+    object?: {} = null;
     where?: Expression | Expression[] = null;
     orderBy?: Expression | Expression[] = null;
     limit?: number = null;
@@ -25,24 +26,24 @@ export class UpdateParams {
 export class Update extends Statement {
     private params = new UpdateParams();
 
-    fromParams(params: UpdateParams){
+    fromParams(params: UpdateParams) {
         return new Update()
             .ignore(params.ignore)
             .lowPriority(params.lowPriority)
             .table(params.table)
-            .object(params.value)
+            .object(params.object)
             .where(params.where)
             .orderBy(params.orderBy)
             .limit(params.limit)
             .set(params.set)
     }
 
-    lowPriority(state = true) {
+    lowPriority(state: boolean) {
         this.params.lowPriority = state;
         return this;
     }
 
-    ignore(state = true) {
+    ignore(state: boolean) {
         this.params.ignore = state;
         return this;
     }
@@ -53,12 +54,23 @@ export class Update extends Statement {
     }
 
     set(expr: Expression | Expression[]) {
-        this.params.set = expr;
+        if (expr) {
+            this.params.set = expr;
+        }
         return this;
     }
 
     object(obj: {}) {
-        //todo
+        if (obj) {
+            const setArr: Expression[] = [];
+            for (const key in obj) {
+                const value = obj[key];
+                if (value !== void 0) {
+                    setArr.push(new Identifier(key).assign(value));
+                }
+            }
+            this.set(setArr);
+        }
         return this;
     }
 
@@ -80,7 +92,7 @@ export class Update extends Statement {
     toSQL(values: QueryValues) {
         let sql = 'UPDATE';
         if (this.params.lowPriority) {
-            sql += ' LOW PRIORITY'
+            sql += ' LOW_PRIORITY'
         }
         if (this.params.ignore) {
             sql += ' IGNORE'

@@ -46,7 +46,7 @@ export class Replace extends Base {
         super();
     }
 
-    fromParams(params: ReplaceParams){
+    fromParams(params: ReplaceParams) {
         return new Replace()
             .lowPriority(params.lowPriority)
             .delayed(params.delayed)
@@ -58,12 +58,12 @@ export class Replace extends Base {
             .select(params.select)
     }
 
-    lowPriority(state = true) {
+    lowPriority(state: boolean) {
         this.params.lowPriority = state;
         return this;
     }
 
-    delayed(state = true) {
+    delayed(state: boolean) {
         this.params.delayed = state;
         return this;
     }
@@ -74,23 +74,37 @@ export class Replace extends Base {
     }
 
     set(expr: Expression | Expression[]) {
-        this.params.set = expr;
+        if (expr) {
+            this.params.set = expr;
+        }
         return this;
     }
 
     object(obj: {}) {
-        //todo
+        if (obj) {
+            const setArr: Expression[] = [];
+            for (const key in obj) {
+                const value = obj[key];
+                if (value !== void 0) {
+                    setArr.push(new Identifier(key).assign(value));
+                }
+            }
+            this.set(setArr);
+        }
         return this;
     }
 
-
-    cols(identifiers: Identifier | Identifier[]) {
-        this.params.cols = identifiers;
+    cols(cols: Identifier | Identifier[]) {
+        if (cols) {
+            this.params.cols = cols;
+        }
         return this;
     }
 
     values(values: (Expression | Raw)[][]) {
-        this.params.values = values;
+        if (values) {
+            this.params.values = values;
+        }
         return this;
     }
 
@@ -103,7 +117,7 @@ export class Replace extends Base {
         let sql = 'REPLACE';
         //todo: handle empty array
         if (this.params.lowPriority) {
-            sql += ' LOW PRIORITY'
+            sql += ' LOW_PRIORITY'
         }
         if (this.params.delayed) {
             sql += ' DELAYED'

@@ -3,12 +3,12 @@ import {DataSource} from "./DataSource";
 import {Expression} from "./Expression";
 import {toSql, toArray} from "./common";
 `
-DELETE [LOWPRIORITY] [QUICK] [IGNORE] 
-    FROM tblname
-        [PARTITION (partitionname,...)]
-    [WHERE wherecondition]
+DELETE [LOW_PRIORITY] [QUICK] [IGNORE] 
+    FROM tbl_name
+        [PARTITION (partition_name,...)]
+    [WHERE where_condition]
     [ORDER BY ...]
-    [LIMIT rowcount]
+    [LIMIT row_count]
 `
 
 export class DeleteParams {
@@ -39,17 +39,17 @@ export class Delete extends Statement {
             .limit(params.limit)
     }
 
-    lowPriority(state = true) {
+    lowPriority(state: boolean) {
         this.params.lowPriority = state;
         return this;
     }
 
-    ignore(state = true) {
+    ignore(state: boolean) {
         this.params.ignore = state;
         return this;
     }
 
-    quick(state = true) {
+    quick(state: boolean) {
         this.params.quick = state;
         return this;
     }
@@ -75,9 +75,9 @@ export class Delete extends Statement {
     }
 
     toSQL(values: QueryValues) {
-        let sql = 'UPDATE';
+        let sql = 'DELETE';
         if (this.params.lowPriority) {
-            sql += ' LOW PRIORITY'
+            sql += ' LOW_PRIORITY'
         }
         if (this.params.ignore) {
             sql += ' IGNORE'

@@ -19,5 +19,5 @@ export function toArray<T extends Base | RawValue>(item: T | T[], values: QueryV
         }
         return sql;
     }
-    return toSql(item, values);
+    return toSql(transform ? transform(item) : item, values);
 }
