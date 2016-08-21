@@ -42,7 +42,7 @@ export class InsertParams {
     delayed?: boolean = false;
     highPriority?: boolean = false;
     ignore?: boolean = false;
-
+    objects?: {}[];
     into?: DataSource = null;
     cols?: Identifier | Identifier[] = null;
     values?: (Expression | Raw)[][] = null;
@@ -64,32 +64,32 @@ export class Insert extends Statement {
             .delayed(params.delayed)
             .highPriority(params.highPriority)
             .ignore(params.ignore)
-
             .into(params.into)
             .cols(params.cols)
             .values(params.values)
+            .objects(params.objects)
             .set(params.set)
             .onDuplicateKeyUpdate(params.onDuplicateKeyUpdate)
             .select(params.select)
     }
 
 
-    lowPriority(state = true) {
+    lowPriority(state: boolean) {
         this.params.lowPriority = state;
         return this;
     }
 
-    delayed(state = true) {
+    delayed(state: boolean) {
         this.params.delayed = state;
         return this;
     }
 
-    highPriority(state = true) {
+    highPriority(state: boolean) {
         this.params.highPriority = state;
         return this;
     }
 
-    ignore(state = true) {
+    ignore(state: boolean) {
         this.params.ignore = state;
         return this;
     }
@@ -100,22 +100,46 @@ export class Insert extends Statement {
     }
 
     set(expr: Expression | Expression[]) {
-        this.params.set = expr;
+        if (expr) {
+            this.params.set = expr;
+        }
         return this;
     }
 
-    objects(obj: {}) {
-        //todo
+    objects(objects: {}[]) {
+        if (objects && objects.length > 0) {
+            const keys = Object.keys(objects[0]);
+            const keyLen = keys.length;
+            const cols: Identifier[] = Array(keyLen);
+            const vals: Expression[][] = [];
+            for (let i = 0; i < keyLen; i++) {
+                cols[i] = new Identifier(keys[i]);
+            }
+            this.cols(cols);
+            for (let i = 0; i < Object.length; i++) {
+                const item = Object[i];
+                const row = Array(keyLen);
+                for (let j = 0; j < keyLen; j++) {
+                    row[j] = item[keys[j]];
+                }
+                vals.push(row);
+            }
+            this.values(vals);
+        }
         return this;
     }
 
-    cols(identifiers: Identifier | Identifier[]) {
-        this.params.cols = identifiers;
+    cols(cols: Identifier | Identifier[]) {
+        if (cols) {
+            this.params.cols = cols;
+        }
         return this;
     }
 
     values(values: (Expression | Raw)[][]) {
-        this.params.values = values;
+        if (values) {
+            this.params.values = values;
+        }
         return this;
     }
 
@@ -132,7 +156,7 @@ export class Insert extends Statement {
     toSQL(values: QueryValues) {
         let sql = 'INSERT';
         if (this.params.lowPriority) {
-            sql += ' LOW PRIORITY'
+            sql += ' LOW_PRIORITY'
         }
         if (this.params.delayed) {
             sql += ' DELAYED'

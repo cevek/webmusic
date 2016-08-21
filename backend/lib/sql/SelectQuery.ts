@@ -99,7 +99,7 @@ export class SelectQuery extends Statement {
         return this;
     }
 
-    groupBy(expr: Expression | Expression[], withRollup = false) {
+    groupBy(expr: Expression | Expression[], withRollup?: boolean) {
         this.params.groupBy = expr;
         this.params.groupByWithRollup = withRollup;
         return this;
@@ -131,17 +131,17 @@ export class SelectQuery extends Statement {
         return this;
     }
 
-    forUpdate(state = true) {
+    forUpdate(state: boolean) {
         this.params.forUpdate = state;
         return this;
     }
 
-    lockInShareMode(state = true) {
+    lockInShareMode(state: boolean) {
         this.params.lockInShareMode = state;
         return this;
     }
 
-    union(select: SelectQuery, all = false) {
+    union(select: SelectQuery, all?: boolean) {
         this.params.union = select;
         this.params.unionAll = all;
         return this;
@@ -206,7 +206,6 @@ export enum SelectDirective{
     DISTINCT,
     DISTINCTROW,
     HIGHPRIORITY,
-    MAXSTATEMENTTIME,
     STRAIGHTJOIN,
     SQLSMALLRESULT,
     SQLBIGRESULT,
