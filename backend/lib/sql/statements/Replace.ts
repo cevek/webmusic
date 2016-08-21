@@ -1,9 +1,9 @@
-import {Base, Raw, QueryValues} from "./Base";
-import {DataSource} from "./DataSource";
-import {Expression} from "./Expression";
-import {toSql, toArray} from "./common";
-import {Identifier} from "./Identifier";
-import {SelectQuery} from "./SelectQuery";
+import {Base, Raw, QueryValues} from "../Base";
+import {DataSource} from "../DataSource";
+import {Expression} from "../Expression";
+import {toSql, toArray} from "../common";
+import {Identifier} from "../Identifier";
+import {SelectQuery} from "./Select";
 
 /**
  * Syntax:

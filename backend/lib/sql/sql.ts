@@ -1,11 +1,11 @@
-import {SelectQuery, SelectDirective} from "./SelectQuery";
+import {SelectQuery, SelectDirective} from "./statements/Select";
 import {Field, Table, RawSQL} from "./DataSource";
 import {Identifier} from "./Identifier";
 import {Functions} from "./Functions";
-import {Update} from "./Update";
-import {Replace} from "./Replace";
-import {Delete} from "./Delete";
-import {Insert} from "./Insert";
+import {Update} from "./statements/Update";
+import {Replace} from "./statements/Replace";
+import {Delete} from "./statements/Delete";
+import {Insert} from "./statements/Insert";
 export const SQL = new class SQL {
     select() {
         return new SelectQuery();

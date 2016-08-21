@@ -1,9 +1,9 @@
-import {Statement, QueryValues} from "./Base";
-import {Expression, LeftExpression, ExpressionTypes} from "./Expression";
-import {DataSource, RawSQL} from "./DataSource";
-import {Identifier} from "./Identifier";
-import {Procedure} from "./Procedure";
-import {toSql, toArray} from "./common";
+import {Statement, QueryValues} from "../Base";
+import {Expression, LeftExpression, ExpressionTypes} from "../Expression";
+import {DataSource, RawSQL} from "../DataSource";
+import {Identifier} from "../Identifier";
+import {Procedure} from "../Procedure";
+import {toSql, toArray} from "../common";
 
 /**
  * SELECT
@@ -36,7 +36,7 @@ import {toSql, toArray} from "./common";
  */
 
 
-export class SelectParams {
+export class Select {
     directives?: SelectDirective | SelectDirective[] = null;
     attrs?: Expression | Expression[] = null;
     from?: DataSource | DataSource[] = null;
@@ -56,9 +56,9 @@ export class SelectParams {
 }
 
 export class SelectQuery extends Statement {
-    private params = new SelectParams();
+    private params = new Select();
 
-    fromParams(params: SelectParams) {
+    fromParams(params: Select) {
         return new SelectQuery()
             .directives(params.directives)
             .attrs(params.attrs)

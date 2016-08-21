@@ -1,9 +1,9 @@
-import {Raw, QueryValues, Statement} from "./Base";
-import {DataSource} from "./DataSource";
-import {Expression} from "./Expression";
-import {toSql, toArray} from "./common";
-import {Identifier} from "./Identifier";
-import {SelectQuery} from "./SelectQuery";
+import {Raw, QueryValues, Statement} from "../Base";
+import {DataSource} from "../DataSource";
+import {Expression} from "../Expression";
+import {toSql, toArray} from "../common";
+import {Identifier} from "../Identifier";
+import {SelectQuery} from "./Select";
 
 `
 INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE]

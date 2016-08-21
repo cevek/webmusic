@@ -1,7 +1,7 @@
-import {QueryValues, Statement} from "./Base";
-import {DataSource} from "./DataSource";
-import {Expression} from "./Expression";
-import {toSql, toArray} from "./common";
+import {QueryValues, Statement} from "../Base";
+import {DataSource} from "../DataSource";
+import {Expression} from "../Expression";
+import {toSql, toArray} from "../common";
 `
 DELETE [LOW_PRIORITY] [QUICK] [IGNORE] 
     FROM tbl_name
