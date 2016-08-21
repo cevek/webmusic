@@ -1,7 +1,7 @@
 import {Expression} from "./Expression";
-import {QueryValues} from "../query";
 import {toSql} from "./common";
 import {RawSQL} from "./DataSource";
+import {QueryValues} from "./Base";
 export class Fun extends Expression {
     constructor(private name: string, private args: Expression[]) {
         super();

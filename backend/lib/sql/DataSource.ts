@@ -1,6 +1,5 @@
-import {Base, RawValue} from "./Base";
+import {Base, RawValue, QueryValues} from "./Base";
 import {Expression} from "./Expression";
-import {QueryValues} from "../query";
 import {toSql} from "./common";
 import {Identifier} from "./Identifier";
 
