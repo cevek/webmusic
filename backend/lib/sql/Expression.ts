@@ -1,6 +1,7 @@
 import {Base, RawValue} from "./Base";
 import {QueryValues} from "../query";
 import {toSql} from "./common";
+import {Identifier} from "./Identifier";
 
 type Raw = RawValue;
 type RawOrExpression = RawValue | Expression;
@@ -53,9 +54,32 @@ export const ExpressionTypes = {
     DEFAULT(left: Raw) {return `${left} DEFAULT`},
     NULL(left: Raw) {return `${left} NULL`},
     BRACKETS(left: Raw) {return `(${left})`},
-};
 
-type ExpressionType = (...args: string[])=>string;
+    CASE(left: Raw, right: Raw) {return `${left} CASE ${right}`},
+    CASE_EMPTY(left: Raw) {return `${left} CASE`},
+    WHEN(left: Raw, right: Raw) {return `${left} WHEN ${right}`},
+    THEN(left: Raw, right: Raw) {return `${left} THEN ${right}`},
+    END(left: Raw) {return `${left} END`},
+
+
+    AS(left: Raw, right: Raw) {return `${left} AS ${right}`},
+    CHARACTER_SET(left: Raw, right: Raw) {return `${left} CHARACTER SET ${right}`},
+    USING(left: Raw, right: Raw) {return `${left} USING ${right}`},
+
+    INTERVAL_SECOND(left: Raw, right: Raw) {return `${left} INTERVAL ${right} SECOND`},
+    INTERVAL_MINUTE(left: Raw, right: Raw) {return `${left} INTERVAL ${right} MINUTE`},
+    INTERVAL_HOUR(left: Raw, right: Raw) {return `${left} INTERVAL ${right} HOUR`},
+    INTERVAL_DAY(left: Raw, right: Raw) {return `${left} INTERVAL ${right} DAY`},
+    INTERVAL_MONTH(left: Raw, right: Raw) {return `${left} INTERVAL ${right} MONTH`},
+    INTERVAL_YEAR(left: Raw, right: Raw) {return `${left} INTERVAL ${right} YEAR`},
+    INTERVAL_MINUTE_SECOND(left: Raw, right: Raw) {return `${left} INTERVAL ${right} MINUTE_SECOND`},
+    INTERVAL_HOUR_MINUTE(left: Raw, right: Raw) {return `${left} INTERVAL ${right} HOUR_MINUTE`},
+    INTERVAL_DAY_HOUR(left: Raw, right: Raw) {return `${left} INTERVAL ${right} DAY_HOUR`},
+    INTERVAL_YEAR_MONTH(left: Raw, right: Raw) {return `${left} INTERVAL ${right} YEAR_MONTH`},
+    INTERVAL_HOUR_SECOND(left: Raw, right: Raw) {return `${left} INTERVAL ${right} HOUR_SECOND`},
+    INTERVAL_DAY_MINUTE(left: Raw, right: Raw) {return `${left} INTERVAL ${right} DAY_MINUTE`},
+    INTERVAL_DAY_SECOND(left: Raw, right: Raw) {return `${left} INTERVAL ${right} DAY_SECOND`},
+};
 
 
 export class Expression extends Base {
@@ -220,42 +244,123 @@ export class Expression extends Base {
         return new LeftExpression(ExpressionTypes.NULL, this);
     }
 
+    case(expr?: Expression): Expression {
+        if (expr) {
+            return new LeftRightExpression(ExpressionTypes.CASE, this, expr);
+        }
+        return new LeftExpression(ExpressionTypes.CASE_EMPTY, this);
+    }
+
+    when(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.WHEN, this, expr);
+    }
+
+    then(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.THEN, this, expr);
+    }
+
+    end() {
+        return new LeftExpression(ExpressionTypes.NULL, this);
+    }
+
+    as(identifier: Identifier): Expression {
+        return new LeftRightExpression(ExpressionTypes.AS, this, identifier);
+    }
+
+    characterSet(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.CHARACTER_SET, this, expr);
+    }
+
+    using(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.USING, this, expr);
+    }
+
+    intervalSecond(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_SECOND, this, expr);
+    }
+
+    intervalMinute(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_MINUTE, this, expr);
+    }
+
+    intervalHour(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_HOUR, this, expr);
+    }
+
+    intervalDay(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_DAY, this, expr);
+    }
+
+    intervalMonth(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_MONTH, this, expr);
+    }
+
+    intervalYear(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_YEAR, this, expr);
+    }
+
+    intervalMinuteSecond(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_MINUTE_SECOND, this, expr);
+    }
+
+    intervalHourMinute(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_HOUR_MINUTE, this, expr);
+    }
+
+    intervalDayHour(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_DAY_HOUR, this, expr);
+    }
+
+    intervalYearMonth(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_YEAR_MONTH, this, expr);
+    }
+
+    intervalHourSecond(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_HOUR_SECOND, this, expr);
+    }
+
+    intervalDayMinute(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_DAY_MINUTE, this, expr);
+    }
+
+    intervalDaySecond(expr: Expression) {
+        return new LeftRightExpression(ExpressionTypes.INTERVAL_DAY_SECOND, this, expr);
+    }
+
     brackets() {
         return new LeftExpression(ExpressionTypes.BRACKETS, this);
     }
-
-    //todo: case
 }
 
 export class LeftExpression extends Expression {
-    constructor(protected typeL: ExpressionType, private left: RawOrExpression) {
+    constructor(protected type: (arg1: Raw)=>string, private left: RawOrExpression) {
         super();
     }
 
     toSQL(values: QueryValues) {
-        return this.typeL(toSql(this.left, values));
+        return this.type(toSql(this.left, values));
     }
 }
 
 export class LeftRightExpression extends Expression {
-    constructor(protected typeLR: ExpressionType, private left: RawOrExpression, private right: RawOrExpression) {
+    constructor(protected type: (arg1: Raw, arg2: Raw)=>string, private left: RawOrExpression, private right: RawOrExpression) {
         super();
     }
 
     toSQL(values: QueryValues) {
-        if (this.typeLR == ExpressionTypes.IN && (!(this.right instanceof Array) || this.right.length == 0)) {
+        if (this.type == ExpressionTypes.IN && (!(this.right instanceof Array) || this.right.length == 0)) {
             this.right = null;
         }
-        return this.typeLR(toSql(this.left, values), toSql(this.right, values));
+        return this.type(toSql(this.left, values), toSql(this.right, values));
     }
 }
 
 export class LeftABExpression extends Expression {
-    constructor(protected typeAB: ExpressionType, private left: RawOrExpression, private a: RawOrExpression, private b: RawOrExpression) {
+    constructor(protected type: (arg1: Raw, arg2: Raw, arg3: Raw)=>string, private left: RawOrExpression, private a: RawOrExpression, private b: RawOrExpression) {
         super();
     }
 
     toSQL(values: QueryValues) {
-        return this.typeAB(toSql(this.left, values), toSql(this.a, values), toSql(this.b, values));
+        return this.type(toSql(this.left, values), toSql(this.a, values), toSql(this.b, values));
     }
 }
