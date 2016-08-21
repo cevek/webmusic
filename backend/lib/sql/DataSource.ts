@@ -31,7 +31,7 @@ export abstract class DataSource extends Base {
 export class Join extends DataSource {
     private _on: Expression;
 
-    constructor(private joinType: string, private tableFrom: DataSource, private tableTo: DataSource) {
+    constructor(private joinType: 'INNER' | 'LEFT' | 'RIGHT' | 'OUTER', private tableFrom: DataSource, private tableTo: DataSource) {
         super();
     }
 
