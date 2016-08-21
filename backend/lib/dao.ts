@@ -1,25 +1,32 @@
 "use strict";
 import {DB} from "./db";
-import {
-    Attribute, SelectParams, insertSql, wexpr, selectQueryGenerator, QueryValues, Table, updateSql, deleteSql,
-    UpdateParams, DeleteParams, Expression
-} from "./query";
 import {Transaction} from "./Transaction";
 import {inject} from "./injector";
 import {ResultSetHeader} from "./Connection";
+import {QueryValues} from "./sql/Base";
+import {SQL} from "./sql/sql";
+import {Field, Table} from "./sql/DataSource";
+import {Expression} from "./sql/Expression";
+import {Identifier} from "./sql/Identifier";
+import {UpdateParams} from "./sql/Update";
+import {DeleteParams} from "./sql/Delete";
+import {InsertParams} from "./sql/Insert";
+import {SelectParams} from "./sql/SelectQuery";
+
 
 type DAOX = DAO<BaseType>;
 type DAOC = typeof DAO;
 
 interface Include {
-    relation:Relation;
-    params?:Params;
+    relation: Relation;
+    params?: Params;
 }
 
-interface Params extends SelectParams {
-    include?:Include[];
-    trx?:Transaction;
+interface Params {
+    include?: Include[];
+    trx?: Transaction;
 }
+
 
 interface BaseType {
     // id:number;
@@ -27,102 +34,96 @@ interface BaseType {
 
 
 export class DAO<T extends BaseType> {
-    static name:string;
-    static id:Attribute;
+    static name: string;
+    static id: Field;
     protected db = inject(DB);
-    static table:Table;
+    static table: Table;
 
-    id:Attribute;
+    // id: Field;
 
-    static rel:any;
+    static rel: any;
 
-    async create(item:T, trx?:Transaction) {
+    async create(item: T, trx?: Transaction) {
         return await this.createBulk([item], trx);
     }
 
-    async update(item:T, id:number, trx?:Transaction) {
-        const values:QueryValues = [];
+    async update(item: T, id: number, trx?: Transaction) {
         const ctor = this.constructor as DAOC;
-        const result = await this.db.query(updateSql({
-            table: ctor.table,
-            value: item,
-            where: ctor.id.equal(id)
-        }, values), values, trx) as ResultSetHeader;
-        return result.affectedRows;
+        return this.updateCustom({value: item, where: ctor.id.equal(id)}, trx);
     }
 
-    async updateCustom(params:UpdateParams, trx?:Transaction) {
-        const values:QueryValues = [];
+    async updateCustom(params: UpdateParams = {}, trx?: Transaction) {
+        const values: QueryValues = [];
         const ctor = this.constructor as DAOC;
         if (!params.table) {
             params.table = ctor.table;
         }
-        const result = await this.db.query(updateSql(params, values), values, trx) as ResultSetHeader;
+        const sql = SQL.update().fromParams(params).toSQL(values);
+        const result = await this.db.query(sql, values, trx) as ResultSetHeader;
         return result.affectedRows;
     }
 
-    async remove(id:number, trx?:Transaction) {
+    async remove(id: number, trx?: Transaction) {
         return this.removeAll([id], trx);
     }
 
-    async removeAll(ids:number[], trx?:Transaction) {
-        const values:QueryValues = [];
+    async removeAll(ids: number[], trx?: Transaction) {
         const ctor = this.constructor as DAOC;
-        const result = await this.db.query(deleteSql({
-            table: ctor.table,
-            where: ctor.id.in(ids)
-        }, values), values, trx) as ResultSetHeader;
-        return result.affectedRows;
+        return this.removeCustom({where: ctor.id.in(ids)}, trx);
     }
 
-    async removeCustom(params:DeleteParams, trx?:Transaction) {
-        const values:QueryValues = [];
+    async removeCustom(params: DeleteParams = {}, trx?: Transaction) {
+        const values: QueryValues = [];
         const ctor = this.constructor as DAOC;
-        if (!params.table) {
-            params.table = ctor.table;
+        if (!params.from) {
+            params.from = ctor.table;
         }
-        const result = await this.db.query(deleteSql(params, values), values, trx) as ResultSetHeader;
+        const sql = SQL.delete().fromParams(params).toSQL(values);
+        const result = await this.db.query(sql, values, trx) as ResultSetHeader;
         return result.affectedRows;
     }
 
-    async createBulk(items:T[], trx?:Transaction) {
-        const values:QueryValues = [];
+    async createBulk(items: T[], trx?: Transaction) {
+        return this.insertCustom({objects: items}, trx);
+    }
+
+
+    async insertCustom(params: InsertParams = {}, trx?: Transaction) {
+        const values: QueryValues = [];
         const ctor = this.constructor as DAOC;
-        const result = await this.db.query(insertSql({
-            table: ctor.table,
-            objValues: items
-        }, values), values, trx) as ResultSetHeader;
+        if (!params.into) {
+            params.into = ctor.table;
+        }
+        const sql = SQL.insert().fromParams(params).toSQL(values);
+        const result = await this.db.query(sql, values, trx) as ResultSetHeader;
         return result.insertId;
     }
 
-    async findById(id:number, params:Params = {}, trx?:Transaction) {
-        params.table = (this.constructor as DAOC).table;
-        if (!params.where) {
-            params.where = wexpr();
-        }
-        params.where.and(this.id.equal(id));
-        return this.findOne(params, trx);
+    async findById(id: number, include?: Include[], trx?: Transaction) {
+        const ctor = this.constructor as DAOC;
+        return this.findOne({where: ctor.id.equal(id)}, include, trx);
     }
 
-    async findAll(params:Params = {}, trx?:Transaction) {
-        const values:QueryValues = [];
-        if (!params.table) {
-            params.table = (this.constructor as DAOC).table;
+    async findAll(params: SelectParams = {}, include?: Include[], trx?: Transaction) {
+        const values: QueryValues = [];
+        const ctor = this.constructor as DAOC;
+        if (!params.from) {
+            params.from = ctor.table;
         }
-        const sql = selectQueryGenerator(params, values);
+        const sql = SQL.select().fromParams(params).toSQL(values);
         const result = await this.db.queryAll<T>(sql, values, trx);
-        if (params.include) {
-            await this.includeRelations(params.include, result, trx);
+        if (include) {
+            await this.includeRelations(include, result, trx);
         }
         return result;
     }
 
-    async findOne(params?:Params, trx?:Transaction) {
-        return (await this.findAll(params, trx)).pop();
+    async findOne(params?: Params, include?: Include[], trx?: Transaction) {
+        return (await this.findAll(params, include, trx)).pop();
     }
 
-    async query(query:Expression, include?:Include[], trx?:Transaction) {
-        const values:QueryValues = [];
+    async query(query: Expression, include?: Include[], trx?: Transaction) {
+        const values: QueryValues = [];
         const result = await this.db.queryAll<T>(query.toSQL(values), values, trx);
         if (include) {
             await this.includeRelations(include, result, trx);
@@ -130,20 +131,20 @@ export class DAO<T extends BaseType> {
         return result;
     }
 
-    private async includeRelations(includes:Include[], result:T[], trx:Transaction) {
+    private async includeRelations(includes: Include[], result: T[], trx: Transaction) {
         for (let i = 0; i < includes.length; i++) {
             const include = includes[i];
             await this.processRelation(trx, include.relation, include.params, result, null, include.relation.property);
         }
     }
 
-    protected async processRelation(trx:Transaction, relation:Relation, params:Params = {}, result:BaseType[], parentResult:BaseType[], property:string, parentSubItems?:BaseType[], parentAggregateFieldName?:string, parentFK?:string) {
+    protected async processRelation(trx: Transaction, relation: Relation, params: Params = {}, result: BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
         const isBelongs = relation.type == RelationType.BELONGS_TO;
-        let modelDAO:DAOX;
+        let modelDAO: DAOX;
 
-        let aggregateFieldName:string;
-        let from:DDD;
-        let model:DDD;
+        let aggregateFieldName: string;
+        let from: DDD;
+        let model: DDD;
         from = relation.fromx;
         if (relation.through) {
             model = relation.through.fromx;
@@ -152,14 +153,14 @@ export class DAO<T extends BaseType> {
             model = relation.model;
         }
         modelDAO = inject(model);
-        aggregateFieldName = isBelongs ? relation.foreignKey.name : from.id.name;
+        aggregateFieldName = isBelongs ? relation.foreignKey.toSQL() : from.id.toSQL();
 
         // todo: hasMany from parameters
         let isHasMany = relation.type == RelationType.HAS_MANY || relation.type == RelationType.HAS_MANY_THROUGH || parentSubItems;
 
         const ids = Array(result.length);
 
-        const foreignKeyName = isBelongs ? model.id.name : relation.foreignKey.name;
+        const foreignKeyName = isBelongs ? model.id.toSQL() : relation.foreignKey.toSQL();
         // console.log('aggregateFieldName', aggregateFieldName);
         // console.log('foreignKeyName', foreignKeyName);
 
@@ -187,7 +188,7 @@ export class DAO<T extends BaseType> {
             return;
         }
 
-        let map:{};
+        let map: {};
         if (parentSubItems) {
             map = {};
             for (let i = 0; i < parentSubItems.length; i++) {
@@ -246,27 +247,27 @@ export class DAO<T extends BaseType> {
         return null;
     }
 
-    static field(name:string) {
-        return new Attribute(this.table, name);
+    static field(name: string) {
+        return SQL.attr(this.table, name);
     }
 
-    static hasMany(cls:DDD, foreignKey:Attribute, property:string) {
+    static hasMany(cls: DDD, foreignKey: Identifier, property: string) {
         return new Relation(RelationType.HAS_MANY, this, cls, null, foreignKey, property)
     }
 
-    static hasManyThrough(through:Relation, foreignKey:Attribute, property:string) {
+    static hasManyThrough(through: Relation, foreignKey: Identifier, property: string) {
         return new Relation(RelationType.HAS_MANY_THROUGH, this, null, through, foreignKey, property);
     }
 
-    static hasOne(cls:DDD, foreignKey:Attribute, property:string) {
+    static hasOne(cls: DDD, foreignKey: Identifier, property: string) {
         return new Relation(RelationType.HAS_ONE, this, cls, null, foreignKey, property)
     }
 
-    static hasOneThrough(through:Relation, foreignKey:Attribute, property:string) {
+    static hasOneThrough(through: Relation, foreignKey: Identifier, property: string) {
         return new Relation(RelationType.HAS_ONE_THROUGH, this, null, through, foreignKey, property)
     }
 
-    static belongsTo(cls:DDD, foreignKey:Attribute, property:string) {
+    static belongsTo(cls: DDD, foreignKey: Identifier, property: string) {
         return new Relation(RelationType.BELONGS_TO, this, cls, null, foreignKey, property)
     }
 }
@@ -277,22 +278,22 @@ const enum RelationType {
 }
 
 interface DDD {
-    new ():DAOX;
-    table:Table;
-    id:Attribute;
+    new (): DAOX;
+    table: Table;
+    id: Identifier;
 }
 
 class Relation {
-    type:RelationType;
-    cls:DDD;
-    model:DDD;
-    through:Relation;
-    fromx:DDD;
-    property:string;
+    type: RelationType;
+    cls: DDD;
+    model: DDD;
+    through: Relation;
+    fromx: DDD;
+    property: string;
 
-    foreignKey:Attribute;
+    foreignKey: Identifier;
 
-    constructor(type:RelationType, from:DDD, cls:DDD, through:Relation, foreignKey:Attribute, property:string) {
+    constructor(type: RelationType, from: DDD, cls: DDD, through: Relation, foreignKey: Identifier, property: string) {
         this.type = type;
         this.fromx = from;
         this.cls = cls;
