@@ -1,6 +1,5 @@
 'use strict';
 import {Transaction} from "./Transaction";
-import {QueryValues} from "./query";
 import {inject} from "./injector";
 import {Connection} from "./Connection";
 import {Logger} from "./Logger";
@@ -9,7 +8,7 @@ export class DB {
     protected logger = new Logger(this.constructor.name);
     protected connection = inject(Connection);
 
-    async query<T>(query:string, values?:QueryValues, trx?:Transaction):Promise<T> {
+    async query<T>(query:string, values?:any, trx?:Transaction):Promise<T> {
 
         var connection = trx ? trx.connection : await this.getConnection();
         // this.logger.log('query', connection.threadId, query, values);

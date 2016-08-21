@@ -8,10 +8,10 @@ import {SQL} from "./sql/sql";
 import {Field, Table} from "./sql/DataSource";
 import {Expression} from "./sql/Expression";
 import {Identifier} from "./sql/Identifier";
-import {UpdateParams} from "./sql/Update";
-import {DeleteParams} from "./sql/Delete";
-import {InsertParams} from "./sql/Insert";
-import {SelectParams} from "./sql/SelectQuery";
+import {UpdateParams} from "./sql/statements/Update";
+import {DeleteParams} from "./sql/statements/Delete";
+import {InsertParams} from "./sql/statements/Insert";
+import {Select} from "./sql/statements/Select";
 
 
 type DAOX = DAO<BaseType>;
@@ -19,27 +19,23 @@ type DAOC = typeof DAO;
 
 interface Include {
     relation: Relation;
-    params?: Params;
+    params?: SelectParamsWithInclude;
 }
-
-interface Params {
-    include?: Include[];
-    trx?: Transaction;
-}
-
 
 interface BaseType {
     // id:number;
 }
 
 
+interface SelectParamsWithInclude extends Select {
+    include?: Include[];
+}
+
 export class DAO<T extends BaseType> {
     static name: string;
     static id: Field;
     protected db = inject(DB);
     static table: Table;
-
-    // id: Field;
 
     static rel: any;
 
@@ -49,7 +45,7 @@ export class DAO<T extends BaseType> {
 
     async update(item: T, id: number, trx?: Transaction) {
         const ctor = this.constructor as DAOC;
-        return this.updateCustom({value: item, where: ctor.id.equal(id)}, trx);
+        return this.updateCustom({object: item, where: ctor.id.equal(id)}, trx);
     }
 
     async updateCustom(params: UpdateParams = {}, trx?: Transaction) {
@@ -99,12 +95,12 @@ export class DAO<T extends BaseType> {
         return result.insertId;
     }
 
-    async findById(id: number, include?: Include[], trx?: Transaction) {
+    async findById(id: number, trx?: Transaction) {
         const ctor = this.constructor as DAOC;
-        return this.findOne({where: ctor.id.equal(id)}, include, trx);
+        return this.findOne({where: ctor.id.equal(id)}, trx);
     }
 
-    async findAll(params: SelectParams = {}, include?: Include[], trx?: Transaction) {
+    async findAll(params: SelectParamsWithInclude = {}, trx?: Transaction) {
         const values: QueryValues = [];
         const ctor = this.constructor as DAOC;
         if (!params.from) {
@@ -112,14 +108,14 @@ export class DAO<T extends BaseType> {
         }
         const sql = SQL.select().fromParams(params).toSQL(values);
         const result = await this.db.queryAll<T>(sql, values, trx);
-        if (include) {
-            await this.includeRelations(include, result, trx);
+        if (params.include) {
+            await this.includeRelations(params.include, result, trx);
         }
         return result;
     }
 
-    async findOne(params?: Params, include?: Include[], trx?: Transaction) {
-        return (await this.findAll(params, include, trx)).pop();
+    async findOne(params?: SelectParamsWithInclude, trx?: Transaction) {
+        return (await this.findAll(params, trx)).pop();
     }
 
     async query(query: Expression, include?: Include[], trx?: Transaction) {
@@ -138,7 +134,7 @@ export class DAO<T extends BaseType> {
         }
     }
 
-    protected async processRelation(trx: Transaction, relation: Relation, params: Params = {}, result: BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
+    protected async processRelation(trx: Transaction, relation: Relation, params: SelectParamsWithInclude = {}, result: BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
         const isBelongs = relation.type == RelationType.BELONGS_TO;
         let modelDAO: DAOX;
 
@@ -174,10 +170,11 @@ export class DAO<T extends BaseType> {
         if (relation.through) {
             localParams = {where: cond};
         } else {
-            if (!localParams.where) {
-                localParams.where = wexpr();
+            let where = localParams.where instanceof Array ? localParams.where : [localParams.where];
+            if (!where) {
+                where = localParams.where = [];
             }
-            localParams.where = localParams.where.and(cond);
+            where.push(cond);
         }
 
         const subResult = await modelDAO.findAll(localParams, trx);
