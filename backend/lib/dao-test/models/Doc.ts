@@ -1,9 +1,9 @@
 import {DAO} from "../../dao";
-import {Table} from "../../query";
 import {Chapter} from "./Chapter";
+import {SQL} from "../../sql/sql";
 
 export class Doc extends DAO<{}> {
-    static table = new Table('Doc');
+    static table = SQL.table('Doc');
     static id = Doc.field('id');
     static Name = Doc.field('name');
 

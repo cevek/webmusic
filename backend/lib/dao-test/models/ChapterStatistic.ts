@@ -1,13 +1,9 @@
 import {DAO} from "../../dao";
-import {Table} from "../../query";
-import {Paragraph} from "./Paragraph";
-import {Author} from "./Author";
-import {Doc} from "./Doc";
-import {Chapter} from "./Chapter";
 import {ChapterInfo} from "./ChapterInfo";
+import {SQL} from "../../sql/sql";
 
 export class ChapterStatistic extends DAO<{}> {
-    static table = new Table('ChapterStatistic');
+    static table = SQL.table('ChapterStatistic');
     static id = ChapterStatistic.field('id');
     static Name = ChapterStatistic.field('name');
     static chapterInfoId = ChapterStatistic.field('chapterInfoId');

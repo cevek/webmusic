@@ -1,12 +1,12 @@
 import {DAO} from "../../dao";
-import {Table} from "../../query";
 import {Paragraph} from "./Paragraph";
 import {Author} from "./Author";
 import {Doc} from "./Doc";
 import {ChapterInfo} from "./ChapterInfo";
+import {SQL} from "../../sql/sql";
 
 export class Chapter extends DAO<{}> {
-    static table = new Table('Chapter');
+    static table =SQL.table('Chapter');
     static id = Chapter.field('id');
     static Name = Chapter.field('name');
     static authorId = Chapter.field('authorId');
