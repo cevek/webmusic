@@ -116,8 +116,8 @@ export class Insert extends Statement {
                 cols[i] = new Identifier(keys[i]);
             }
             this.cols(cols);
-            for (let i = 0; i < Object.length; i++) {
-                const item = Object[i];
+            for (let i = 0; i < objects.length; i++) {
+                const item = objects[i];
                 const row = Array(keyLen);
                 for (let j = 0; j < keyLen; j++) {
                     row[j] = item[keys[j]];
