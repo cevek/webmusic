@@ -1,29 +1,33 @@
-import {SelectQuery} from "./SelectQuery";
+import {SelectQuery, SelectDirective} from "./SelectQuery";
 import {Field, Table, RawSQL} from "./DataSource";
 import {Identifier} from "./Identifier";
 import {Functions} from "./Functions";
-export class SQL {
+import {Update} from "./Update";
+import {Replace} from "./Replace";
+import {Delete} from "./Delete";
+import {Insert} from "./Insert";
+export const SQL = new class SQL {
     select() {
         return new SelectQuery();
     }
 
-    insertInto(): any {
-
+    insert() {
+        return new Insert();
     }
 
-    update(): any {
-
+    update() {
+        return new Update();
     }
 
-    replace(): any {
-
+    replace() {
+        return new Replace();
     }
 
-    delete(): any {
-
+    delete() {
+        return new Delete();
     }
 
-    all(){
+    all() {
         return new RawSQL('*');
     }
 
@@ -41,8 +45,11 @@ export class SQL {
 
     fun = Functions;
 
-    default = new RawSQL('DEFAULT')
+    default = new RawSQL('DEFAULT');
+    SelectDirectives = SelectDirective;
 }
+
+
 /*
 
  sql
