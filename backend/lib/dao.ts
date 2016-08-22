@@ -28,11 +28,16 @@ interface SelectParamsWithInclude extends Select {
 
 export class DAO<T extends BaseType> {
     private __table: Table;
+
     get table(): Table {
         return this.__table || (this.__table = new Table(new Identifier(this.constructor.name)));
     }
 
+    static foreignKeys: Map<typeof DAO, string>;
+    static relationKeys: Map<typeof DAO, string>;
+
     private __id: Field;
+
     get id(): Field {
         return this.__id || (this.__id = new DAOField(this, 'id'));
     }
@@ -130,12 +135,6 @@ export class DAO<T extends BaseType> {
     protected async processRelation(trx: Transaction, relation: Relation, params: SelectParamsWithInclude = {}, result: BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
         const isBelongs = relation.type == RelationType.BELONGS_TO;
         let aggregateFieldName: string;
-/*
-        const through = relation.throughFn && relation.throughFn();
-        const selfKey = through ? through.selfKeyFn() : relation.selfKeyFn();
-        const foreignKey = through ? through.foreignKeyFn() : relation.foreignKeyFn();
-        const modelDAO = through ? selfKey.dao : foreignKey.dao;
-*/
         const through = relation.throughFn && relation.throughFn();
         const selfKey = relation.selfKeyFn();
         const foreignKey = relation.foreignKeyFn();
@@ -240,7 +239,7 @@ export class DAO<T extends BaseType> {
 
 
 const enum RelationType {
-    HAS_ONE, HAS_ONE_THROUGH, HAS_MANY, HAS_MANY_THROUGH, BELONGS_TO
+    HAS_ONE, HAS_MANY, HAS_MANY_THROUGH, BELONGS_TO
 }
 
 export class Relation {
@@ -251,12 +250,26 @@ export class Relation {
     selfKeyFn: () => DAOField;
     foreignKeyFn: () => DAOField;
 
-    constructor(type: RelationType, selfKeyFn: ()=>DAOField, throughFn: () => Relation, foreignKeyFn: ()=>DAOField, property: string) {
-        this.type = type;
-        this.throughFn = throughFn;
-        this.selfKeyFn = selfKeyFn;
-        this.foreignKeyFn = foreignKeyFn;
-        this.property = property;
+    constructor(type: RelationType, what: ()=>typeof DAO, whereDAO: typeof DAO, property: string, through: ()=>typeof DAO) {
+        setImmediate(() => {
+            if (!whereDAO.relationKeys) {
+                whereDAO.relationKeys = new Map();
+            }
+
+            const destDAO = what();
+            const whatDAO = through ? through() : destDAO;
+            this.type = type;
+
+            whereDAO.relationKeys.set(whatDAO, property);
+
+            this.selfKeyFn = () => type == RelationType.BELONGS_TO ? inject(whereDAO)[whereDAO.foreignKeys.get(whatDAO)] : inject(whereDAO).id;
+            this.foreignKeyFn = () => type == RelationType.BELONGS_TO ? inject(whatDAO).id : inject(whatDAO)[whatDAO.foreignKeys.get(whereDAO)];
+
+            if (through) {
+                this.throughFn = () => inject(whatDAO)[whatDAO.relationKeys.get(destDAO)];
+            }
+            this.property = property;
+        })
     }
 }
 
@@ -273,38 +286,41 @@ export function field(target: any, property: string) {
     })
 }
 
-function rel(type: RelationType, foreignKeyFn: ()=>Field, selfKeyFn: () => Field, through: () => Relation) {
+function rel(type: RelationType, what: ()=>typeof DAO, through: ()=>typeof DAO) {
     return (target: any, property: string)=> {
-        if (!selfKeyFn) {
-            selfKeyFn = () => inject(target.constructor as typeof DAO).id;
-        }
-        const rel = new Relation(type, selfKeyFn as ()=>DAOField, through, foreignKeyFn as ()=>DAOField, property);
+        const rel = new Relation(type, what, target.constructor, property, through);
         Object.defineProperty(target, property, {
-            get: () => rel
+            get: () => rel,
+            configurable: true
         });
     }
 }
 
 // Track.stationId, Station.id
-export function hasMany(foreignKeyFn: () => Field, selfKeyFn?: () => Field) {
-    return rel(RelationType.HAS_MANY, foreignKeyFn, selfKeyFn, null);
+export function foreignKey(foreignModel: () => typeof DAO) {
+    // return field;
+    return function (target: any, property: string) {
+        const My = (target.constructor as typeof DAO);
+        setImmediate(() => {
+            if (!My.foreignKeys) {
+                My.foreignKeys = new Map();
+            }
+            My.foreignKeys.set(foreignModel(), property);
+        })
+        return field(target, property);
+    }
 }
 
-// GenreStation.genres, GenreStation.stationId, Station.id
-export function hasManyThrough(through: () => Relation, foreignKeyFn: ()=>Field, selfKeyFn?: () => Field) {
-    return rel(RelationType.HAS_MANY_THROUGH, foreignKeyFn, selfKeyFn, through);
+
+// Track.stationId, Station.id
+export function hasMany(what: ()=>typeof DAO, through?: ()=>typeof DAO) {
+    return rel(RelationType.HAS_MANY, what, through);
 }
 
-export function hasOne(foreignKeyFn: () => Field, selfKeyFn?: () => Field) {
-    return rel(RelationType.HAS_ONE, foreignKeyFn, selfKeyFn, null);
+export function hasOne(what: ()=>typeof DAO, through?: ()=>typeof DAO) {
+    return rel(RelationType.HAS_ONE, what, through);
 }
-
-//
-export function hasOneThrough(through: () => Relation, foreignKeyFn: () => Field, selfKeyFn?: () => Field) {
-    return rel(RelationType.HAS_ONE_THROUGH, foreignKeyFn, selfKeyFn, through);
-}
-
 // Station.id, Track.stationId
-export function belongsTo(foreignKeyFn: () => Field, selfKeyFn: () => Field) {
-    return rel(RelationType.BELONGS_TO, foreignKeyFn, selfKeyFn, null);
+export function belongsTo(what: ()=>typeof DAO) {
+    return rel(RelationType.BELONGS_TO, what, null);
 }
