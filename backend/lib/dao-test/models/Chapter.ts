@@ -1,25 +1,30 @@
-import {DAO, Relation, hasMany, field, hasOneThrough, belongsTo} from "../../dao";
+import {DAO, Relation, hasMany, field, belongsTo, hasOne, foreignKey} from "../../dao";
 import {Paragraph} from "./Paragraph";
 import {Author} from "./Author";
 import {Doc} from "./Doc";
 import {ChapterInfo} from "./ChapterInfo";
 import {inject} from "../../injector";
 import {Field} from "../../sql/DataSource";
+import {ChapterStatistic} from "./ChapterStatistic";
 
 export class Chapter extends DAO<{}> {
     @field name: Field;
-    @field authorId: Field;
-    @field docId: Field;
 
-    @hasMany(()=>inject(Paragraph).chapterId)
+    @foreignKey(()=>Author)
+    authorId: Field;
+
+    @foreignKey(()=>Doc)
+    docId: Field;
+
+    @hasMany(()=>Paragraph)
     paragraphs: Relation;
 
-    @belongsTo(()=>inject(Author).id, ()=>inject(Chapter).authorId)
+    @belongsTo(()=>Author)
     author: Relation;
 
-    @belongsTo(()=>inject(Doc).id, ()=>inject(Chapter).docId)
+    @belongsTo(()=>Doc)
     doc: Relation;
 
-    @hasOneThrough(()=>inject(ChapterInfo).statistic, ()=>inject(ChapterInfo).chapterId)
+    @hasOne(()=>ChapterStatistic, ()=>ChapterInfo)
     statistic: Relation;
 }

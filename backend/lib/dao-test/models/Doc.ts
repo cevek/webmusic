@@ -1,17 +1,18 @@
-import {DAO, Relation, hasMany, field, hasManyThrough} from "../../dao";
+import {DAO, Relation, hasMany, field} from "../../dao";
 import {Chapter} from "./Chapter";
-import {inject} from "../../injector";
 import {Field} from "../../sql/DataSource";
+import {Paragraph} from "./Paragraph";
+import {Author} from "./Author";
 
 export class Doc extends DAO<{}> {
     @field name: Field;
 
-    @hasMany(()=>inject(Chapter).docId)
+    @hasMany(()=>Chapter)
     chapters: Relation;
 
-    @hasManyThrough(()=>inject(Chapter).paragraphs, ()=>inject(Chapter).docId)
+    @hasMany(()=>Paragraph, ()=>Chapter)
     paragraphs: Relation;
 
-    @hasManyThrough(()=>inject(Chapter).author, ()=>inject(Chapter).docId)
+    @hasMany(()=>Author, ()=>Chapter)
     authors: Relation;
 }
