@@ -1,7 +1,8 @@
-import {DAO} from "../lib/dao";
+import {DAO, field, hasManyThrough, Relation} from "../lib/dao";
 import {Station} from "./Station";
 import {GenreStation} from "./GenreStation";
-import {SQL} from "../lib/sql/index";
+import {Field} from "../lib/sql/DataSource";
+import {inject} from "../lib/injector";
 
 export interface GenreEntity {
     id:number;
@@ -10,13 +11,8 @@ export interface GenreEntity {
 }
 
 export class Genre extends DAO<GenreEntity> {
-    static table = SQL.table('Genre');
-    static id = Genre.field('id');
-    static Name = Genre.field('name');
+    @field name: Field;
 
-    static get rel() {
-        return {
-            stations: Genre.hasManyThrough(GenreStation.rel.station, GenreStation.stationId, 'stations')
-        }
-    }
+    @hasManyThrough(()=>inject(GenreStation).station, ()=>inject(GenreStation).stationId)
+    stations: Relation;
 }

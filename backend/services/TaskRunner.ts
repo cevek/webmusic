@@ -13,9 +13,12 @@ export class TaskRunner {
     minDiffSeconds = 1 * 3600;
     db = inject(DB);
     station = inject(Station);
+    track = inject(Track);
     recordingStations = new Set<number>();
 
     async run() {
+        const Station = this.station;
+        const Track = this.track;
         try {
             this.logger.log(`Run tasks, current RunnedTasks: ${this.runnedTasks}, limit: ${this.config.limitConcurentProcess}`);
             if (this.runnedTasks >= this.config.limitConcurentProcess) {
@@ -25,7 +28,7 @@ export class TaskRunner {
 
             const lastTrackDate = SQL.identifier('lastTrackDate');
 
-            const results = await this.station.findAll({
+            const results = await Station.findAll({
                 attrs: [Station.table.all(), SQL.fun.MAX(Track.createdAt).as(lastTrackDate)],
                 from: Station.table.leftJoin(Track.table).on(Station.id.equal(Track.stationId)),
                 groupBy: Station.id,

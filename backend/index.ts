@@ -6,7 +6,7 @@ import {sleep} from "./lib/Utils";
 import {Config} from "./config";
 import {TaskRunner} from "./services/TaskRunner";
 import {Logger} from "./lib/Logger";
-declare var Promise:typeof bluebird;
+declare var Promise: typeof bluebird;
 global.Promise = bluebird;
 
 const ENV = process.env['NODE_ENV'] || 'development';

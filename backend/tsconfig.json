@@ -8,8 +8,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "suppressImplicitAnyIndexErrors": true,
-    "emitDecoratorMetadata": true,
     "skipDefaultLibCheck": true,
+    "noImplicitThis": true,
     "sourceMap": true
   },
   "exclude": [

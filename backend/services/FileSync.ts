@@ -12,7 +12,8 @@ export class FileSync {
     config = inject(Config);
 
     async sync() {
-        const tracks = await this.track.findAll({
+        const Track = this.track;
+        const tracks = await Track.findAll({
             attrs: [Track.id, Track.filename],
             where: Track.error.equal(0),
             orderBy: Track.filename
@@ -36,7 +37,8 @@ export class FileSync {
     }
 
     async removeNonStoppedTracks() {
-        const affected = await this.track.removeCustom({
+        const Track = this.track;
+        const affected = await Track.removeCustom({
             where: Track.endedAt.isNull()
         })
         if (affected > 0) {
@@ -45,7 +47,8 @@ export class FileSync {
     }
 
     async removeOldTracks() {
-        const tracks = await this.track.findAll({
+        const Track = this.track;
+        const tracks = await Track.findAll({
             attrs: [Track.id, Track.size],
             orderBy: Track.createdAt.desc()
         }) as {id:number; size:number}[];

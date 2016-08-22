@@ -1,6 +1,7 @@
-import {DAO} from "../lib/dao";
+import {DAO, field, Relation, belongsTo} from "../lib/dao";
 import {Station} from "./Station";
-import {SQL} from "../lib/sql/index";
+import {Field} from "../lib/sql/DataSource";
+import {inject} from "../lib/injector";
 export interface StationSimilarEntity {
     id:number;
     stationId1:number;
@@ -8,16 +9,12 @@ export interface StationSimilarEntity {
 }
 
 export class StationSimilar extends DAO<StationSimilarEntity> {
-    static table = SQL.table('StationSimilar');
-    static id = StationSimilar.field('id');
+    @field stationId1: Field;
+    @field stationId2: Field;
 
-    static stationId1 = StationSimilar.field('stationId1');
-    static stationId2 = StationSimilar.field('stationId2');
+    @belongsTo(()=>inject(Station).id, ()=>inject(StationSimilar).stationId1)
+    station1: Relation;
 
-    static get rel() {
-        return {
-            station1: StationSimilar.belongsTo(Station, StationSimilar.stationId1, 'station1'),
-            station2: StationSimilar.belongsTo(Station, StationSimilar.stationId2, 'station2'),
-        }
-    }
+    @belongsTo(()=>inject(Station).id, ()=>inject(StationSimilar).stationId2)
+    station2: Relation;
 }

@@ -1,7 +1,8 @@
-import {DAO} from "../lib/dao";
+import {DAO, field, Relation, belongsTo} from "../lib/dao";
 import {Genre} from "./Genre";
 import {Station, StationEntity} from "./Station";
-import {SQL} from "../lib/sql/index";
+import {Field} from "../lib/sql/DataSource";
+import {inject} from "../lib/injector";
 export class GenreStationEntity {
     id:number;
     genre:Genre;
@@ -9,17 +10,12 @@ export class GenreStationEntity {
 }
 
 export class GenreStation extends DAO<GenreStationEntity> {
-    static table = SQL.table('GenreStation');
-    static id = GenreStation.field('id');
+    @field genreId: Field;
+    @field stationId: Field;
 
+    @belongsTo(()=>inject(Station).id, ()=>inject(GenreStation).stationId)
+    station: Relation;
 
-    static genreId = GenreStation.field('genreId');
-    static stationId = GenreStation.field('stationId');
-
-    static get rel() {
-        return {
-            genre: GenreStation.belongsTo(Genre, GenreStation.genreId, 'genre'),
-            station: GenreStation.belongsTo(Station, GenreStation.stationId, 'station'),
-        }
-    }
+    @belongsTo(()=>inject(Genre).id, ()=>inject(GenreStation).genreId)
+    genre: Relation;
 }

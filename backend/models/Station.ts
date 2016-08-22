@@ -1,48 +1,43 @@
-import {DAO} from "../lib/dao";
+import {DAO, field, hasMany, Relation, hasManyThrough} from "../lib/dao";
 import {GenreStation} from "./GenreStation";
 import {Genre} from "./Genre";
 import {StationInfo} from "./StationInfo";
 import {Track} from "./Track";
 import {StationSimilar} from "./StationSimilar";
-import {SQL} from "../lib/sql/index";
+import {Field} from "../lib/sql/DataSource";
+import {inject} from "../lib/injector";
 export interface StationEntity {
-    id:number;
-    name:string;
+    id: number;
+    name: string;
 
-    genres:Genre[];
+    genres: Genre[];
 
-    info:StationInfo;
+    info: StationInfo;
 
-    url:string;
-    needToConvert:boolean;
+    url: string;
 
-    slug:string;
-    cover:string;
+    slug: string;
+    cover: string;
 
-    owner:number;
-    foreignId:string;
+    owner: number;
+    foreignId: string;
 }
 
 export class Station extends DAO<StationEntity> {
-    static table = SQL.table('Station');
-    static id = Station.field('id');
+    @field name: Field;
+    @field url: Field;
+    @field slug: Field;
+    @field cover: Field;
 
-    static Name = Station.field('name');
-    static url = Station.field('url');
-    static needToConvert = Station.field('needToConvert');
-    static slug = Station.field('slug');
-    static cover = Station.field('cover');
+    @field owner: Field;
+    @field foreignId: Field;
 
-    static owner = Station.field('owner');
-    static foreignId = Station.field('foreignId');
+    @hasMany(()=>inject(Track).stationId)
+    tracks: Relation;
 
-    static get rel() {
-        return {
-            genreStations: Station.hasMany(GenreStation, GenreStation.stationId, 'genreStation'),
-            genres: Station.hasManyThrough(GenreStation.rel.genre, GenreStation.stationId, 'genres'),
-            tracks: Station.hasMany(Track, Track.stationId, 'tracks'),
-            similar: Station.hasManyThrough(StationSimilar.rel.station2, StationSimilar.stationId1, 'similar'),
-            info: Station.hasOne(StationInfo, StationInfo.stationId, 'info')
-        }
-    }
+    @hasManyThrough(()=>inject(GenreStation).genre, ()=>inject(GenreStation).stationId)
+    genre: Relation;
+
+    @hasManyThrough(()=>inject(StationSimilar).station2, ()=>inject(StationSimilar).stationId1)
+    similar: Relation;
 }
