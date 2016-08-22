@@ -1,11 +1,10 @@
-import {DAO, field, hasMany, Relation, hasManyThrough} from "../lib/dao";
+import {DAO, field, hasMany, Relation} from "../lib/dao";
 import {GenreStation} from "./GenreStation";
 import {Genre} from "./Genre";
 import {StationInfo} from "./StationInfo";
 import {Track} from "./Track";
-import {StationSimilar} from "./StationSimilar";
 import {Field} from "../lib/sql/DataSource";
-import {inject} from "../lib/injector";
+import {StationSimilar} from "./StationSimilar";
 export interface StationEntity {
     id: number;
     name: string;
@@ -32,12 +31,13 @@ export class Station extends DAO<StationEntity> {
     @field owner: Field;
     @field foreignId: Field;
 
-    @hasMany(()=>inject(Track).stationId)
+    @hasMany(()=>Track)
     tracks: Relation;
 
-    @hasManyThrough(()=>inject(GenreStation).genre, ()=>inject(GenreStation).stationId)
+    @hasMany(()=>Genre, ()=>GenreStation)
     genre: Relation;
 
-    @hasManyThrough(()=>inject(StationSimilar).station2, ()=>inject(StationSimilar).stationId1)
+    //todo:
+    @hasMany(()=>Station, ()=>StationSimilar)
     similar: Relation;
 }

@@ -1,7 +1,6 @@
-import {DAO, field, belongsTo, Relation} from "../lib/dao";
+import {DAO, field, belongsTo, Relation, foreignKey} from "../lib/dao";
 import {Station} from "./Station";
 import {Field} from "../lib/sql/DataSource";
-import {inject} from "../lib/injector";
 export interface ITrack {
     id: number;
     stationId: number;
@@ -17,7 +16,9 @@ export interface ITrack {
 }
 
 export class Track extends DAO<ITrack> {
-    @field stationId: Field;
+    @foreignKey(()=>Station)
+    stationId: Field;
+
     @field filename: Field;
     @field duration: Field;
     @field lastUsedAt: Field;
@@ -28,6 +29,6 @@ export class Track extends DAO<ITrack> {
     @field breaks: Field;
     @field size: Field;
 
-    @belongsTo(()=>inject(Station).id, ()=>inject(Track).stationId)
+    @belongsTo(()=>Station)
     station: Relation;
 }
