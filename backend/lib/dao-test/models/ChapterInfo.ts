@@ -1,18 +1,16 @@
-import {DAO} from "../../dao";
+import {DAO, Relation, field, belongsTo, hasOne} from "../../dao";
 import {Chapter} from "./Chapter";
 import {ChapterStatistic} from "./ChapterStatistic";
-import {SQL} from "../../sql/index";
+import {inject} from "../../injector";
+import {Field} from "../../sql/DataSource";
 
 export class ChapterInfo extends DAO<{}> {
-    static table = SQL.table('ChapterInfo');
-    static id = ChapterInfo.field('id');
-    static Name = ChapterInfo.field('name');
-    static chapterId = ChapterInfo.field('chapterId');
+    @field name: Field;
+    @field chapterId: Field;
 
-    static get rel() {
-        return {
-            chapter: ChapterInfo.belongsTo(Chapter, ChapterInfo.chapterId, 'chapter'),
-            statistic: ChapterInfo.hasOne(ChapterStatistic, ChapterStatistic.chapterInfoId, 'statistic'),
-        }
-    }
+    @belongsTo(()=>inject(Chapter).id, ()=>inject(ChapterInfo).chapterId)
+    chapter: Relation;
+
+    @hasOne(()=>inject(ChapterStatistic).chapterInfoId)
+    statistic: Relation;
 }

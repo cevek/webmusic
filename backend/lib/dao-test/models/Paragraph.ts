@@ -1,17 +1,12 @@
-import {DAO} from "../../dao";
+import {DAO, Relation, field, belongsTo} from "../../dao";
 import {Chapter} from "./Chapter";
-import {SQL} from "../../sql/index";
+import {inject} from "../../injector";
+import {Field} from "../../sql/DataSource";
 
 export class Paragraph extends DAO<{}> {
-    static table = SQL.table('Paragraph');
-    static id = Paragraph.field('id');
-    static Name = Paragraph.field('name');
-    static chapterId = Paragraph.field('chapterId');
+    @field name: Field;
+    @field chapterId: Field;
 
-
-    static get rel() {
-        return {
-            chapter: Paragraph.belongsTo(Chapter, Paragraph.chapterId, 'chapter')
-        }
-    }
+    @belongsTo(()=>inject(Chapter).id, ()=>inject(Paragraph).chapterId)
+    chapter: Relation;
 }

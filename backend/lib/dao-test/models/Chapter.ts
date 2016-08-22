@@ -1,23 +1,25 @@
-import {DAO} from "../../dao";
+import {DAO, Relation, hasMany, field, hasOneThrough, belongsTo} from "../../dao";
 import {Paragraph} from "./Paragraph";
 import {Author} from "./Author";
 import {Doc} from "./Doc";
 import {ChapterInfo} from "./ChapterInfo";
-import {SQL} from "../../sql/index";
+import {inject} from "../../injector";
+import {Field} from "../../sql/DataSource";
 
 export class Chapter extends DAO<{}> {
-    static table =SQL.table('Chapter');
-    static id = Chapter.field('id');
-    static Name = Chapter.field('name');
-    static authorId = Chapter.field('authorId');
-    static docId = Chapter.field('docId');
+    @field name: Field;
+    @field authorId: Field;
+    @field docId: Field;
 
-    static get rel() {
-        return {
-            paragraphs: Chapter.hasMany(Paragraph, Paragraph.chapterId, 'paragraphs'),
-            author: Chapter.belongsTo(Author, Chapter.authorId, 'author'),
-            doc: Chapter.belongsTo(Doc, Chapter.docId, 'doc'),
-            statistic: Chapter.hasOneThrough(ChapterInfo.rel.statistic, ChapterInfo.chapterId, 'statistic'),
-        }
-    }
+    @hasMany(()=>inject(Paragraph).chapterId)
+    paragraphs: Relation;
+
+    @belongsTo(()=>inject(Author).id, ()=>inject(Chapter).authorId)
+    author: Relation;
+
+    @belongsTo(()=>inject(Doc).id, ()=>inject(Chapter).docId)
+    doc: Relation;
+
+    @hasOneThrough(()=>inject(ChapterInfo).statistic, ()=>inject(ChapterInfo).chapterId)
+    statistic: Relation;
 }

@@ -13,85 +13,91 @@ require('source-map-support').install();
 Error.stackTraceLimit = 30;
 bindInjection(DBConfig, config.db);
 
+const doc = inject(Doc);
+const author = inject(Author);
+const chapter = inject(Chapter);
+const chapterInfo = inject(ChapterInfo);
+const chapterStatistic = inject(ChapterStatistic);
+const paragraph = inject(Paragraph);
 const testGroups = [
     {
-        model: Doc,
+        model: doc,
         tests: [
             {
-                relation: Doc.rel.authors,
+                relation: doc.authors,
                 inspect: inspections.doc.authors
             },
             {
-                relation: Doc.rel.chapters,
+                relation: doc.chapters,
                 inspect: inspections.doc.chapters
             },
             {
-                relation: Doc.rel.paragraphs,
+                relation: doc.paragraphs,
                 inspect: inspections.doc.paragraphs
             }
         ],
     },
     {
-        model: Author,
+        model: author,
         tests: [
             {
-                relation: Author.rel.chapters,
+                relation: author.chapters,
                 inspect: inspections.author.chapters
             },
             {
-                relation: Author.rel.paragraphs,
+                relation: author.paragraphs,
                 inspect: inspections.author.paragraphs
             }
         ],
     },
     {
-        model: Chapter,
+        model: chapter,
         tests: [
             {
-                relation: Chapter.rel.author,
+                relation: chapter.author,
                 inspect: inspections.chapter.author
             },
             {
-                relation: Chapter.rel.doc,
+                relation: chapter.doc,
                 inspect: inspections.chapter.doc
             },
             {
-                relation: Chapter.rel.paragraphs,
+                relation: chapter.paragraphs,
                 inspect: inspections.chapter.paragraphs
             },
             {
-                relation: Chapter.rel.statistic,
+                relation: chapter.statistic,
                 inspect: inspections.chapter.statistic
             },
         ],
     },
     {
-        model: ChapterInfo,
+        model: chapterInfo,
         tests: [
             {
-                relation: ChapterInfo.rel.chapter,
+                relation: chapterInfo.chapter,
                 inspect: inspections.chapterInfo.chapter
             },
             {
-                relation: ChapterInfo.rel.statistic,
+                relation: chapterInfo.statistic,
                 inspect: inspections.chapterInfo.statistic
             }
         ],
     },
     {
-        model: ChapterStatistic,
+        model: chapterStatistic,
         tests: [
             {
-                relation: ChapterStatistic.rel.chapterInfo,
+                relation: chapterStatistic.chapterInfo,
                 inspect: inspections.chapterStatistic.chapterInfo
             }
         ],
     },
     {
-        model: Paragraph,
+        model: paragraph,
         tests: [
             {
-                relation: Paragraph.rel.chapter,
+                relation: paragraph.chapter,
                 inspect: inspections.paragraph.chapter
             }
         ],
@@ -101,13 +107,16 @@ const testGroups = [
 async function runTests() {
     for (let i = 0; i < testGroups.length; i++) {
         const testGroup = testGroups[i];
-        const model = inject(testGroup.model);
+        const model = testGroup.model;
         for (let j = 0; j < testGroup.tests.length; j++) {
             const test = testGroup.tests[j];
             const result = await model.findAll({include: [{relation: test.relation}]});
+
             if (JSON.stringify(result) !== JSON.stringify(test.inspect)) {
-                console.error(`Test with model: ${model.constructor.name} and relation: ${test.relation.property} is not passed`);
+                console.error(`Test: ${model.constructor.name}.${test.relation.property} is not passed`);
                 // console.log(test.relation.property + ': ' + JSON.stringify(result, null, 2) + ', ');
+            } else {
+                console.log(`Test: ${model.constructor.name}.${test.relation.property} passed`);
             }
         }
     }

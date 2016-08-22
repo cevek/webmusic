@@ -1,17 +1,17 @@
-import {DAO} from "../../dao";
+import {DAO, Relation, hasMany, field, hasManyThrough} from "../../dao";
 import {Chapter} from "./Chapter";
-import {SQL} from "../../sql/index";
+import {inject} from "../../injector";
+import {Field} from "../../sql/DataSource";
 
 export class Doc extends DAO<{}> {
-    static table = SQL.table('Doc');
-    static id = Doc.field('id');
-    static Name = Doc.field('name');
+    @field name: Field;
 
-    static get rel() {
-        return {
-            chapters: Doc.hasMany(Chapter, Chapter.docId, 'chapters'),
-            paragraphs: Doc.hasManyThrough(Chapter.rel.paragraphs, Chapter.docId, 'paragraphs'),
-            authors: Doc.hasManyThrough(Chapter.rel.author, Chapter.docId, 'authors'),
-        }
-    }
+    @hasMany(()=>inject(Chapter).docId)
+    chapters: Relation;
+
+    @hasManyThrough(()=>inject(Chapter).paragraphs, ()=>inject(Chapter).docId)
+    paragraphs: Relation;
+
+    @hasManyThrough(()=>inject(Chapter).author, ()=>inject(Chapter).docId)
+    authors: Relation;
 }
