@@ -40,13 +40,13 @@ export class Join extends DataSource {
     }
 
     toSQL(values: QueryValues) {
-        return `${toSql(this.tableFrom, null)} ${this.joinType} JOIN ${toSql(this.tableTo, values)}${this._on ? ` ON (${toSql(this._on, values)})` : ''}`;
+        return `${toSql(this.tableFrom, values)} ${this.joinType} JOIN ${toSql(this.tableTo, values)}${this._on ? ` ON (${toSql(this._on, values)})` : ''}`;
     }
 }
 
 export class Table extends DataSource {
-    protected _as: Table = null;
-    private _partition: Identifier[] = null;
+    protected _as?: Table = void 0;
+    private _partition?: Identifier[] = void 0;
 
     constructor(private name: Identifier) {
         super();
@@ -104,7 +104,7 @@ export class Field extends Identifier {
         super(fieldName);
     }
 
-    toSQL() {
-        return `${toSql(this.table, null)}.` + super.toSQL();
+    toSQL(values: QueryValues) {
+        return `${toSql(this.table, values)}.` + super.toSQL(values);
     }
 }

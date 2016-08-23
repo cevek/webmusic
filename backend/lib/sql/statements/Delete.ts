@@ -15,10 +15,10 @@ export class DeleteParams {
     lowPriority?: boolean = false;
     ignore?: boolean = false;
     quick?: boolean = false;
-    from?: DataSource = null;
-    where?: Expression | Expression[] = null;
-    orderBy?: Expression | Expression[] = null;
-    limit?: number = null;
+    from?: DataSource = void 0;
+    where?: Expression | Expression[] = void 0;
+    orderBy?: Expression | Expression[] = void 0;
+    limit?: number = void 0;
 }
 
 export class Delete extends Statement {
@@ -39,37 +39,37 @@ export class Delete extends Statement {
             .limit(params.limit)
     }
 
-    lowPriority(state: boolean) {
+    lowPriority(state: boolean | undefined) {
         this.params.lowPriority = state;
         return this;
     }
 
-    ignore(state: boolean) {
+    ignore(state: boolean | undefined) {
         this.params.ignore = state;
         return this;
     }
 
-    quick(state: boolean) {
+    quick(state: boolean | undefined) {
         this.params.quick = state;
         return this;
     }
 
-    from(table: DataSource) {
+    from(table: DataSource | undefined) {
         this.params.from = table;
         return this;
     }
 
-    where(expr: Expression | Expression[]) {
+    where(expr: Expression | Expression[] | undefined) {
         this.params.where = expr;
         return this;
     }
 
-    orderBy(expr: Expression | Expression[]) {
+    orderBy(expr: Expression | Expression[] | undefined) {
         this.params.orderBy = expr;
         return this;
     }
 
-    limit(limit: number) {
+    limit(limit: number | undefined) {
         this.params.limit = limit;
         return this;
     }

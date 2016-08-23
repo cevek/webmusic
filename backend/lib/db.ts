@@ -28,7 +28,7 @@ export class DB {
                 // console.log(q.sql);
 
             } else {
-                resolve(null);
+                resolve();
             }
         }));
         if (!trx) {

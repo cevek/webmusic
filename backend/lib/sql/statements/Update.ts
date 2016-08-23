@@ -15,12 +15,12 @@ import {Identifier} from "../Identifier";
 export class UpdateParams {
     ignore?: boolean = false;
     lowPriority?: boolean = false;
-    table?: DataSource = null;
-    set?: Expression | Expression[] = null;
-    object?: {} = null;
-    where?: Expression | Expression[] = null;
-    orderBy?: Expression | Expression[] = null;
-    limit?: number = null;
+    table?: DataSource = void 0;
+    set?: Expression | Expression[] = void 0;
+    object?: {} = void 0;
+    where?: Expression | Expression[] = void 0;
+    orderBy?: Expression | Expression[] = void 0;
+    limit?: number = void 0;
 }
 
 export class Update extends Statement {
@@ -38,29 +38,29 @@ export class Update extends Statement {
             .set(params.set)
     }
 
-    lowPriority(state: boolean) {
+    lowPriority(state: boolean | undefined) {
         this.params.lowPriority = state;
         return this;
     }
 
-    ignore(state: boolean) {
+    ignore(state: boolean | undefined) {
         this.params.ignore = state;
         return this;
     }
 
-    table(table: DataSource) {
+    table(table: DataSource | undefined) {
         this.params.table = table;
         return this;
     }
 
-    set(expr: Expression | Expression[]) {
+    set(expr: Expression | Expression[] | undefined) {
         if (expr) {
             this.params.set = expr;
         }
         return this;
     }
 
-    object(obj: {}) {
+    object(obj: {} | undefined) {
         if (obj) {
             const setArr: Expression[] = [];
             for (const key in obj) {
@@ -74,17 +74,17 @@ export class Update extends Statement {
         return this;
     }
 
-    where(expr: Expression | Expression[]) {
+    where(expr: Expression | Expression[] | undefined) {
         this.params.where = expr;
         return this;
     }
 
-    orderBy(expr: Expression | Expression[]) {
+    orderBy(expr: Expression | Expression[] | undefined) {
         this.params.orderBy = expr;
         return this;
     }
 
-    limit(limit: number) {
+    limit(limit: number | undefined) {
         this.params.limit = limit;
         return this;
     }

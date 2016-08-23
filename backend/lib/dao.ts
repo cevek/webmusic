@@ -125,14 +125,14 @@ export class DAO<T extends BaseType> {
         return result;
     }
 
-    private async includeRelations(includes: Include[], result: T[], trx: Transaction) {
+    private async includeRelations(includes: Include[], result: T[], trx?: Transaction) {
         for (let i = 0; i < includes.length; i++) {
             const include = includes[i];
-            await this.processRelation(trx, include.relation, include.params, result, null, include.relation.property);
+            await this.processRelation(trx, include.relation, include.params, result, undefined, include.relation.property);
         }
     }
 
-    protected async processRelation(trx: Transaction, relation: Relation, params: SelectParamsWithInclude = {}, result: BaseType[], parentResult: BaseType[], property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
+    protected async processRelation(trx: Transaction | undefined, relation: Relation, params: SelectParamsWithInclude = {}, result: BaseType[], parentResult: BaseType[] | undefined, property: string, parentSubItems?: BaseType[], parentAggregateFieldName?: string, parentFK?: string) {
         const isBelongs = relation.type == RelationType.BELONGS_TO;
         let aggregateFieldName: string;
         const through = relation.throughFn && relation.throughFn();
@@ -177,8 +177,8 @@ export class DAO<T extends BaseType> {
             return;
         }
 
-        let map: {};
-        if (parentSubItems) {
+        let map: {} | null = null;
+        if (parentSubItems && parentFK) {
             map = {};
             for (let i = 0; i < parentSubItems.length; i++) {
                 let item = parentSubItems[i];
@@ -250,7 +250,7 @@ export class Relation {
     selfKeyFn: () => DAOField;
     foreignKeyFn: () => DAOField;
 
-    constructor(type: RelationType, what: ()=>typeof DAO, whereDAO: typeof DAO, property: string, through: ()=>typeof DAO) {
+    constructor(type: RelationType, what: ()=>typeof DAO, whereDAO: typeof DAO, property: string, through?: ()=>typeof DAO) {
         setImmediate(() => {
             if (!whereDAO.relationKeys) {
                 whereDAO.relationKeys = new Map();
@@ -262,11 +262,27 @@ export class Relation {
 
             whereDAO.relationKeys.set(whatDAO, property);
 
-            this.selfKeyFn = () => type == RelationType.BELONGS_TO ? inject(whereDAO)[whereDAO.foreignKeys.get(whatDAO)] : inject(whereDAO).id;
-            this.foreignKeyFn = () => type == RelationType.BELONGS_TO ? inject(whatDAO).id : inject(whatDAO)[whatDAO.foreignKeys.get(whereDAO)];
-
+            if (type == RelationType.BELONGS_TO) {
+                const selfKeyName = whereDAO.foreignKeys.get(whatDAO);
+                if (!selfKeyName) {
+                    throw new Error(`Doesn't exists foreignKey ${whatDAO.name} in ${whereDAO.name}`);
+                }
+                this.selfKeyFn = () => inject(whereDAO)[selfKeyName];
+                this.foreignKeyFn = () => inject(whatDAO).id as DAOField;
+            } else {
+                this.selfKeyFn = () => inject(whereDAO).id as DAOField;
+                const foreignKeyName = whatDAO.foreignKeys.get(whereDAO);
+                if (!foreignKeyName) {
+                    throw new Error(`Doesn't exists foreignKey ${whereDAO.name} in ${whatDAO.name}`);
+                }
+                this.foreignKeyFn = () => inject(whatDAO)[foreignKeyName];
+            }
             if (through) {
-                this.throughFn = () => inject(whatDAO)[whatDAO.relationKeys.get(destDAO)];
+                const keyName = whatDAO.relationKeys.get(destDAO);
+                if (!keyName) {
+                    throw new Error(`Doesn't exists relationKey ${destDAO.name} in ${whatDAO.name}`);
+                }
+                this.throughFn = () => inject(whatDAO)[keyName];
             }
             this.property = property;
         })
@@ -286,7 +302,7 @@ export function field(target: any, property: string) {
     })
 }
 
-function rel(type: RelationType, what: ()=>typeof DAO, through: ()=>typeof DAO) {
+function rel(type: RelationType, what: ()=>typeof DAO, through?: ()=>typeof DAO) {
     return (target: any, property: string)=> {
         const rel = new Relation(type, what, target.constructor, property, through);
         Object.defineProperty(target, property, {
@@ -322,5 +338,5 @@ export function hasOne(what: ()=>typeof DAO, through?: ()=>typeof DAO) {
 }
 // Station.id, Track.stationId
 export function belongsTo(what: ()=>typeof DAO) {
-    return rel(RelationType.BELONGS_TO, what, null);
+    return rel(RelationType.BELONGS_TO, what);
 }

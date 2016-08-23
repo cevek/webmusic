@@ -35,7 +35,11 @@ export class Recorder {
     constructor(station:StationEntity) {
         this.maxTimeout = this.config.trackDuration * 1500 + 30000;
         this.station = station;
-        this.filename = `${radioServices.get(station.owner).name}_${station.slug}_${(Date.now() / 1000 | 0)}.mp4`;
+        const radioService = radioServices.get(station.owner);
+        if (!radioService) {
+            throw new Error(`RadioService ${station.owner} is not recognized`);
+        }
+        this.filename = `${radioService.name}_${station.slug}_${(Date.now() / 1000 | 0)}.mp4`;
         this.fullFilename = this.config.musicFilesDir + this.filename;
     }
 
@@ -43,14 +47,10 @@ export class Recorder {
         this.logger.log('Recording', this.id, this.station.slug);
         try {
             const trackId = await this.track.create({
-                id: null,
                 stationId: this.station.id,
-                lastUsedAt: null,
                 filename: this.filename,
                 duration: 0,
                 createdAt: new Date(),
-                endedAt: null,
-                info: null,
                 error: 0,
                 breaks: 0,
                 size: 0,
@@ -59,12 +59,7 @@ export class Recorder {
             const result = await this.record();
 
             await this.track.update({
-                id: void 0,
-                stationId: void 0,
-                lastUsedAt: void 0,
-                filename: void 0,
                 duration: result.duration,
-                createdAt: void 0,
                 endedAt: new Date(),
                 info: result.info,
                 error: result.error ? 1 : 0,
@@ -81,8 +76,8 @@ export class Recorder {
 
     private parseLastTime(s:string) {
         const regFFMPEG = /time=(\d+):(\d+):(\d+)\.(\d{2})/g;
-        let res:RegExpMatchArray;
-        let lastRes:RegExpMatchArray;
+        let res:RegExpMatchArray | null;
+        let lastRes:RegExpMatchArray | null = null;
         while (res = regFFMPEG.exec(s)) {
             lastRes = res;
         }

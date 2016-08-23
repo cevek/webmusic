@@ -31,12 +31,12 @@ import {SelectQuery} from "./Select";
 export class ReplaceParams {
     lowPriority?: boolean = false;
     delayed?: boolean = false;
-    into?: DataSource = null;
-    object?: {} = null;
-    cols?: Identifier | Identifier[] = null;
-    values?: (Expression | Raw)[][] = null;
-    set?: Expression | Expression[] = null;
-    select?: SelectQuery = null;
+    into?: DataSource = void 0;
+    object?: {} = void 0;
+    cols?: Identifier | Identifier[] = void 0;
+    values?: (Expression | Raw)[][] = void 0;
+    set?: Expression | Expression[] = void 0;
+    select?: SelectQuery = void 0;
 }
 
 export class Replace extends Base {
@@ -58,29 +58,29 @@ export class Replace extends Base {
             .select(params.select)
     }
 
-    lowPriority(state: boolean) {
+    lowPriority(state: boolean | undefined) {
         this.params.lowPriority = state;
         return this;
     }
 
-    delayed(state: boolean) {
+    delayed(state: boolean | undefined) {
         this.params.delayed = state;
         return this;
     }
 
-    into(table: DataSource) {
+    into(table: DataSource | undefined) {
         this.params.into = table;
         return this;
     }
 
-    set(expr: Expression | Expression[]) {
+    set(expr: Expression | Expression[] | undefined) {
         if (expr) {
             this.params.set = expr;
         }
         return this;
     }
 
-    object(obj: {}) {
+    object(obj: {} | undefined) {
         if (obj) {
             const setArr: Expression[] = [];
             for (const key in obj) {
@@ -94,21 +94,21 @@ export class Replace extends Base {
         return this;
     }
 
-    cols(cols: Identifier | Identifier[]) {
+    cols(cols: Identifier | Identifier[] | undefined) {
         if (cols) {
             this.params.cols = cols;
         }
         return this;
     }
 
-    values(values: (Expression | Raw)[][]) {
+    values(values: (Expression | Raw)[][] | undefined) {
         if (values) {
             this.params.values = values;
         }
         return this;
     }
 
-    select(query: SelectQuery) {
+    select(query: SelectQuery | undefined) {
         this.params.select = query;
         return this;
     }

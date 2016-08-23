@@ -339,7 +339,7 @@ export class LeftRightExpression extends Expression {
 
     toSQL(values: QueryValues) {
         if (this.type == ExpressionTypes.IN && (!(this.right instanceof Array) || this.right.length == 0)) {
-            this.right = null;
+            this.right = void 0;
         }
         return this.type(toSql(this.left, values), toSql(this.right, values));
     }

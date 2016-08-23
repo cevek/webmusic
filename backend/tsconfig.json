@@ -9,6 +9,7 @@
     "noFallthroughCasesInSwitch": true,
     "suppressImplicitAnyIndexErrors": true,
     "skipDefaultLibCheck": true,
+    "strictNullChecks": true,
     "noImplicitThis": true,
     "sourceMap": true
   },

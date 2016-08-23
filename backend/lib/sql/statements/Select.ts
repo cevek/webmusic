@@ -37,22 +37,22 @@ import {toSql, toArray} from "../common";
 
 
 export class Select {
-    directives?: SelectDirective | SelectDirective[] = null;
-    attrs?: Expression | Expression[] = null;
-    from?: DataSource | DataSource[] = null;
-    where?: Expression | Expression[] = null;
-    groupBy?: Expression | Expression[] = null;
-    groupByWithRollup?: boolean = null;
-    having?: Expression | Expression[] = null;
-    orderBy?: Expression | Expression[] = null;
-    limit?: number = null;
-    offset?: number = null;
-    into?: Identifier | Identifier[] = null;
-    procedure?: Procedure = null;
-    forUpdate?: boolean = null;
-    lockInShareMode?: boolean = null;
-    union?: SelectQuery = null;
-    unionAll?: boolean = null;
+    directives?: SelectDirective | SelectDirective[] = void 0;
+    attrs?: Expression | Expression[] = void 0;
+    from?: DataSource | DataSource[] = void 0;
+    where?: Expression | Expression[] = void 0;
+    groupBy?: Expression | Expression[] = void 0;
+    groupByWithRollup?: boolean = void 0;
+    having?: Expression | Expression[] = void 0;
+    orderBy?: Expression | Expression[] = void 0;
+    limit?: number = void 0;
+    offset?: number = void 0;
+    into?: Identifier | Identifier[] = void 0;
+    procedure?: Procedure = void 0;
+    forUpdate?: boolean = void 0;
+    lockInShareMode?: boolean = void 0;
+    union?: SelectQuery = void 0;
+    unionAll?: boolean = void 0;
 }
 
 export class SelectQuery extends Statement {
@@ -79,69 +79,69 @@ export class SelectQuery extends Statement {
         super();
     }
 
-    attrs(attrs: Expression | Expression[]) {
+    attrs(attrs: Expression | Expression[] | undefined) {
         this.params.attrs = attrs;
         return this;
     }
 
-    directives(directives: SelectDirective | SelectDirective[]) {
+    directives(directives: SelectDirective | SelectDirective[] | undefined) {
         this.params.directives = directives;
         return this;
     }
 
-    from(table: DataSource | DataSource[]) {
+    from(table: DataSource | DataSource[] | undefined) {
         this.params.from = table;
         return this;
     }
 
-    where(expr: Expression | Expression[]) {
+    where(expr: Expression | Expression[] | undefined) {
         this.params.where = expr;
         return this;
     }
 
-    groupBy(expr: Expression | Expression[], withRollup?: boolean) {
+    groupBy(expr: Expression | Expression[] | undefined, withRollup?: boolean) {
         this.params.groupBy = expr;
         this.params.groupByWithRollup = withRollup;
         return this;
     }
 
-    having(expr: Expression | Expression[]) {
+    having(expr: Expression | Expression[] | undefined) {
         this.params.having = expr;
         return this;
     }
 
-    orderBy(expr: Expression | Expression[]) {
+    orderBy(expr: Expression | Expression[] | undefined) {
         this.params.orderBy = expr;
         return this;
     }
 
-    limit(limit: number, offset?: number) {
+    limit(limit: number | undefined, offset?: number) {
         this.params.limit = limit;
         this.params.offset = offset;
         return this;
     }
 
-    procedure(procedure: Procedure) {
+    procedure(procedure: Procedure | undefined) {
         this.params.procedure = procedure;
         return this;
     }
 
-    into(expr: Identifier | Identifier[]) {
+    into(expr: Identifier | Identifier[] | undefined) {
         this.params.into = expr;
         return this;
     }
 
-    forUpdate(state: boolean) {
+    forUpdate(state: boolean | undefined) {
         this.params.forUpdate = state;
         return this;
     }
 
-    lockInShareMode(state: boolean) {
+    lockInShareMode(state: boolean | undefined) {
         this.params.lockInShareMode = state;
         return this;
     }
 
-    union(select: SelectQuery, all?: boolean) {
+    union(select: SelectQuery | undefined, all?: boolean) {
         this.params.union = select;
         this.params.unionAll = all;
         return this;

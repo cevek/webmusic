@@ -42,13 +42,13 @@ export class InsertParams {
     delayed?: boolean = false;
     highPriority?: boolean = false;
     ignore?: boolean = false;
-    objects?: {}[];
-    into?: DataSource = null;
-    cols?: Identifier | Identifier[] = null;
-    values?: (Expression | Raw)[][] = null;
-    set?: Expression | Expression[] = null;
-    onDuplicateKeyUpdate?: Expression | Expression[] = null;
-    select?: SelectQuery = null;
+    objects?: {}[] = void 0;
+    into?: DataSource = void 0;
+    cols?: Identifier | Identifier[] = void 0;
+    values?: (Expression | Raw)[][] = void 0;
+    set?: Expression | Expression[] = void 0;
+    onDuplicateKeyUpdate?: Expression | Expression[] = void 0;
+    select?: SelectQuery = void 0;
 }
 
 export class Insert extends Statement {
@@ -74,39 +74,39 @@ export class Insert extends Statement {
     }
 
 
-    lowPriority(state: boolean) {
+    lowPriority(state: boolean | undefined) {
         this.params.lowPriority = state;
         return this;
     }
 
-    delayed(state: boolean) {
+    delayed(state: boolean | undefined) {
         this.params.delayed = state;
         return this;
     }
 
-    highPriority(state: boolean) {
+    highPriority(state: boolean | undefined) {
         this.params.highPriority = state;
         return this;
     }
 
-    ignore(state: boolean) {
+    ignore(state: boolean | undefined) {
         this.params.ignore = state;
         return this;
     }
 
-    into(table: DataSource) {
+    into(table: DataSource | undefined) {
         this.params.into = table;
         return this;
     }
 
-    set(expr: Expression | Expression[]) {
+    set(expr: Expression | Expression[] | undefined) {
         if (expr) {
             this.params.set = expr;
         }
         return this;
     }
 
-    objects(objects: {}[]) {
+    objects(objects: {}[] | undefined) {
         if (objects && objects.length > 0) {
             const keys = Object.keys(objects[0]);
             const keyLen = keys.length;
@@ -129,26 +129,26 @@ export class Insert extends Statement {
         return this;
     }
 
-    cols(cols: Identifier | Identifier[]) {
+    cols(cols: Identifier | Identifier[] | undefined) {
         if (cols) {
             this.params.cols = cols;
         }
         return this;
     }
 
-    values(values: (Expression | Raw)[][]) {
+    values(values: (Expression | Raw)[][] | undefined) {
         if (values) {
             this.params.values = values;
         }
         return this;
     }
 
-    onDuplicateKeyUpdate(expr: Expression | Expression[]) {
+    onDuplicateKeyUpdate(expr: Expression | Expression[] | undefined) {
         this.params.onDuplicateKeyUpdate = expr;
         return this;
     }
 
-    select(query: SelectQuery) {
+    select(query: SelectQuery | undefined) {
         this.params.select = query;
         return this;
     }
