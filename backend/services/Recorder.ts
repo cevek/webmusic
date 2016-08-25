@@ -1,11 +1,11 @@
 import {spawn, ChildProcess} from "child_process";
 import {StationEntity, Station} from "../models/Station";
 import {Track} from "../models/Track";
-import {inject} from "../lib/injector";
 import {Logger} from "../lib/Logger";
 import {radioServices} from "./RadioService";
 import {statSync} from "fs";
 import {Config} from "../config";
+import {inject} from "../lib/dits/index";
 
 interface RecordResult {
     info:string;

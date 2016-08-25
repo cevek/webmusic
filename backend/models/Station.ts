@@ -1,10 +1,10 @@
-import {DAO, field, hasMany, Relation} from "../lib/dao";
 import {GenreStation} from "./GenreStation";
 import {Genre} from "./Genre";
 import {StationInfo} from "./StationInfo";
 import {Track} from "./Track";
-import {Field} from "../lib/sql/DataSource";
 import {StationSimilar} from "./StationSimilar";
+import {DAO, field, hasMany, Relation} from "../lib/tsorm/src/dao";
+import {Field} from "../lib/tsorm/src/sql/DataSource";
 export interface StationEntity {
     id: number;
     name: string;

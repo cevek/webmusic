@@ -1,7 +1,7 @@
-import {DAO, field, Relation, hasMany} from "../lib/dao";
 import {Station} from "./Station";
+import {DAO, hasMany, field, Relation} from "../lib/tsorm/src/dao";
+import {Field} from "../lib/tsorm/src/sql/DataSource";
 import {GenreStation} from "./GenreStation";
-import {Field} from "../lib/sql/DataSource";
 
 export interface GenreEntity {
     id: number;

@@ -1,6 +1,6 @@
-import {DAO, field, belongsTo, Relation, foreignKey} from "../lib/dao";
 import {Station} from "./Station";
-import {Field} from "../lib/sql/DataSource";
+import {DAO, foreignKey, field, belongsTo, Relation} from "../lib/tsorm/src/dao";
+import {Field} from "../lib/tsorm/src/sql/DataSource";
 export interface ITrack {
     id?: number;
     stationId?: number;

@@ -1,9 +1,9 @@
-import {inject} from "../lib/injector";
 import {Track, ITrack} from "../models/Track";
 import {readdirSync, unlinkSync} from "fs";
 import {Logger} from "../lib/Logger";
 import {Config} from "../config";
 import {Station} from "../models/Station";
+import {inject} from "../lib/dits/index";
 
 export class FileSync {
     logger = new Logger(this.constructor.name);

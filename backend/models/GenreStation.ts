@@ -1,7 +1,7 @@
-import {DAO, Relation, belongsTo, foreignKey} from "../lib/dao";
 import {Genre} from "./Genre";
 import {Station, StationEntity} from "./Station";
-import {Field} from "../lib/sql/DataSource";
+import {DAO, foreignKey, belongsTo, Relation} from "../lib/tsorm/src/dao";
+import {Field} from "../lib/tsorm/src/sql/DataSource";
 export class GenreStationEntity {
     id:number;
     genre:Genre;

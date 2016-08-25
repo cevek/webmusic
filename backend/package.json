@@ -11,9 +11,11 @@
   "license": "ISC",
   "dependencies": {
     "bluebird": "^3.4.1",
+    "dits": "^1.0.0",
     "mysql2": "^1.0.0-rc.10",
     "source-map-support": "^0.4.2",
     "sourcemap": "^0.1.0",
-    "tape": "^4.6.0"
+    "tape": "^4.6.0",
+    "tsorm": "^1.0.0"
   }
 }

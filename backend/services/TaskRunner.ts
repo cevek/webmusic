@@ -1,11 +1,11 @@
 import {Logger} from "../lib/Logger";
-import {inject} from "../lib/injector";
 import {Config} from "../config";
-import {DB} from "../lib/db";
 import {Station, StationEntity} from "../models/Station";
 import {Recorder} from "./Recorder";
-import {SQL} from "../lib/sql/index";
 import {Track} from "../models/Track";
+import {inject} from "../lib/dits/index";
+import {DB} from "../lib/tsorm/src/db";
+import {SQL} from "../lib/tsorm/src/sql/index";
 export class TaskRunner {
     runnedTasks = 0;
     config = inject(Config);

@@ -1,6 +1,6 @@
-import {DAO, Relation, belongsTo, foreignKey} from "../lib/dao";
 import {Station} from "./Station";
-import {Field} from "../lib/sql/DataSource";
+import {DAO, foreignKey, belongsTo, Relation} from "../lib/tsorm/src/dao";
+import {Field} from "../lib/tsorm/src/sql/DataSource";
 export interface StationSimilarEntity {
     id:number;
     stationId1:number;
